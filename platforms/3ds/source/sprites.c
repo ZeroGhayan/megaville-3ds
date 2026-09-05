@@ -22,10 +22,10 @@ static const char *SHEET_PATH[CH_COUNT] = {
 	"romfs:/gfx/bubbles.t3x",
 	"romfs:/gfx/buttercup.t3x",
 	"romfs:/gfx/bell.t3x",
-	"romfs:/gfx/shira.t3x",
 	"romfs:/gfx/dexter.t3x",
+	"romfs:/gfx/rowdy.t3x",
 	"romfs:/gfx/zim.t3x",
-	"romfs:/gfx/rowdy.t3x"
+	"romfs:/gfx/shira.t3x"
 };
 
 static C2D_SpriteSheet g_sheet[CH_COUNT];

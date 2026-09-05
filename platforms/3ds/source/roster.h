@@ -1,22 +1,22 @@
 #ifndef MEG_ROSTER_H
 #define MEG_ROSTER_H
 
-/* NAME_* do frame_1479 — BLOSSOM=0 confirmado. */
+/* frame_1479 — Shira e Zim são unlock (grelha final 3x2). */
 enum {
 	CH_BLOSSOM = 0,
 	CH_BUBBLES,
 	CH_BUTTERCUP,
 	CH_BELL,
-	CH_SHIRA,
 	CH_DEXTER,
-	CH_ZIM,
 	CH_ROWDY,
+	CH_ZIM,
+	CH_SHIRA,
 	CH_COUNT
 };
 
 static const char *const CH_NAME[CH_COUNT] = {
 	"BLOSSOM", "BUBBLES", "BUTTERCUP", "BELL",
-	"SHIRA", "DEXTER", "ZIM", "ROWDY"
+	"DEXTER", "ROWDY", "ZIM", "SHIRA"
 };
 
 #define SEL_COLS 4

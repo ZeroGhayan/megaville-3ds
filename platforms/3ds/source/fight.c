@@ -9,7 +9,7 @@
 #define WALK 140.0f
 static const float WALK_SPD[CH_COUNT] = {
 	140.0f, 135.0f, 160.0f, 145.0f,
-	145.0f, 120.0f, 125.0f, 150.0f
+	120.0f, 150.0f, 125.0f, 145.0f
 };
 #define JUMP_V 280.0f
 #define LEFT_WALL 8.0f
