@@ -1,11 +1,16 @@
 #include "fight.h"
 #include "binds.h"
+#include "roster.h"
 
 #include <stdlib.h>
 
 #define GROUND 200.0f
 #define GRAVITY 900.0f
 #define WALK 140.0f
+static const float WALK_SPD[CH_COUNT] = {
+	140.0f, 135.0f, 160.0f, 145.0f,
+	145.0f, 120.0f, 125.0f, 150.0f
+};
 #define JUMP_V 280.0f
 #define LEFT_WALL 8.0f
 #define RIGHT_WALL 392.0f
@@ -160,7 +165,7 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 	}
 
 	if (adx > 52.0f) {
-		f->vx = f->face > 0 ? WALK : -WALK;
+		f->vx = f->face > 0 ? WALK_SPD[f->ch] : -WALK_SPD[f->ch];
 		if (adx > 180.0f && f->dashes >= 100 && ai_roll(3))
 			start_dash(f, f->face);
 		return;
@@ -210,6 +215,8 @@ static void start_dash(Fighter *p, int dir)
 {
 	if (p->dashed || p->dashes < DASH_COST)
 		return;
+	if (p->ch == CH_ZIM)
+		return;
 	if (!can_act(p) && p->phase != FIGHT_WALK)
 		return;
 	p->face = dir;
@@ -250,11 +257,11 @@ void fight_control(Fighter *p, const Fighter *opp)
 			if (p->phase == FIGHT_DASH)
 				return;
 			if (meg_held(MEG_ACT_LEFT)) {
-				p->vx = -WALK;
+				p->vx = -WALK_SPD[p->ch];
 				p->face = -1;
 			}
 			if (meg_held(MEG_ACT_RIGHT)) {
-				p->vx = WALK;
+				p->vx = WALK_SPD[p->ch];
 				p->face = 1;
 			}
 		}

@@ -122,7 +122,7 @@ SLICE_ROOT	:=	$(TOPDIR)/../../assets/private/sliced
 
 all:
 	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS) $(CURDIR)/gfx
-	@for c in blossom bubbles buttercup; do \
+	@for c in blossom bubbles buttercup bell shira dexter zim rowdy; do \
 		if [ -f $(SLICE_ROOT)/$$c/idle.png ]; then \
 			mkdir -p $(CURDIR)/gfx/$$c; \
 			cp -f $(SLICE_ROOT)/$$c/*.png $(CURDIR)/gfx/$$c/; \

@@ -26,6 +26,11 @@ CHARS = {
     "blossom": "DefineSprite_471_Blossom",
     "bubbles": "DefineSprite_563_Bubbles",
     "buttercup": "DefineSprite_690_Buttercup",
+    "bell": "DefineSprite_370_Bell",
+    "shira": "DefineSprite_1469_Shira Bell",
+    "dexter": "DefineSprite_1236_Dexter",
+    "zim": "DefineSprite_1334_zim",
+    "rowdy": "DefineSprite_1399_Rowdyruff",
 }
 
 # frame number in the clip → action name

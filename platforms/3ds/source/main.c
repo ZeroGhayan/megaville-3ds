@@ -1,7 +1,7 @@
 #include "exo/platform.h"
 #include "exo/render.h"
 #include "binds.h"
-#include "sprites.h"
+#include "roster.h"
 
 #include <citro2d.h>
 #include <stdio.h>
@@ -30,12 +30,10 @@ static int g_saved_ok = 1;
 static int g_intro = INTRO_LEN;
 static int g_pick = 0;
 
-static const char *CHAR_NAME[3] = { "BLOSSOM", "BUBBLES", "BUTTERCUP" };
-
 static void apply_chars(void)
 {
 	g_p1.ch = g_pick;
-	g_p2.ch = (g_pick + 1) % 3;
+	g_p2.ch = (g_pick + 1) % CH_COUNT;
 }
 
 static void round_reset(void)
@@ -133,33 +131,41 @@ static void draw_eye(ExoEye eye)
 
 static void draw_select(void)
 {
-	int i;
-	u32 col;
+	int i, col, row;
+	u32 tint;
+	float x, y;
 
 	exo_render_bottom(C2D_Color32(16, 16, 28, 255));
 	exo_text_begin();
-	exo_text(8, 8, 0.5f, C2D_Color32(255, 255, 255, 255), "CHOOSE FIGHTER");
-	for (i = 0; i < 3; ++i) {
-		col = (i == g_pick) ? C2D_Color32(255, 220, 90, 255)
-		                    : C2D_Color32(160, 170, 180, 255);
-		exo_text(16.0f + (float)i * 100.0f, 40, 0.42f, col, CHAR_NAME[i]);
+	exo_text(8, 6, 0.48f, C2D_Color32(255, 255, 255, 255), "SELECT");
+	for (i = 0; i < CH_COUNT; ++i) {
+		col = i % SEL_COLS;
+		row = i / SEL_COLS;
+		x = 12.0f + (float)col * 78.0f;
+		y = 28.0f + (float)row * 88.0f;
+		tint = (i == g_pick) ? C2D_Color32(255, 220, 90, 255)
+		                     : C2D_Color32(140, 150, 160, 255);
+		exo_bot_rect(x, y, 72, 80,
+		             i == g_pick ? C2D_Color32(50, 48, 28, 255)
+		                         : C2D_Color32(28, 30, 40, 255));
+		exo_text(x + 4, y + 4, 0.32f, tint, CH_NAME[i]);
 		if (meg_sprites_ok_ch(i))
-			meg_draw_idle(i, 48.0f + (float)i * 100.0f, 150.0f, 1.4f);
-		else
-			exo_bot_rect(24.0f + (float)i * 100.0f, 100, 40, 50,
-			             i == g_pick ? C2D_Color32(220, 196, 72, 255)
-			                         : C2D_Color32(80, 80, 90, 255));
+			meg_draw_idle(i, x + 36.0f, y + 72.0f, 1.0f);
 	}
-	exo_text(8, 210, 0.4f, C2D_Color32(120, 120, 140, 255),
-	         "LEFT/RIGHT  A fight");
+	exo_text(8, 214, 0.38f, C2D_Color32(120, 120, 140, 255),
+	         "PAD move   A fight");
 }
 
 static void tick_select(void)
 {
-	if (meg_raw_down(EXO_BTN_LEFT) && g_pick > 0)
+	if (meg_raw_down(EXO_BTN_LEFT) && (g_pick % SEL_COLS) > 0)
 		g_pick--;
-	if (meg_raw_down(EXO_BTN_RIGHT) && g_pick < 2)
+	if (meg_raw_down(EXO_BTN_RIGHT) && (g_pick % SEL_COLS) < SEL_COLS - 1)
 		g_pick++;
+	if (meg_raw_down(EXO_BTN_UP) && g_pick >= SEL_COLS)
+		g_pick -= SEL_COLS;
+	if (meg_raw_down(EXO_BTN_DOWN) && g_pick + SEL_COLS < CH_COUNT)
+		g_pick += SEL_COLS;
 	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
 		round_reset();
 		g_ui = UI_PLAY;
