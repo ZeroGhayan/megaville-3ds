@@ -60,4 +60,22 @@ SFX originais também. Placeholder fica no Git.
 Depois do inventário: você escolhe frames, eu monto o atlas
 (`tex3ds`) e o código aponta para `idle_0`, `light_1`, etc.
 
-Até lá o hello desenha caixas com o nome da ação.
+## 6. Recortar o slice (local)
+
+```bash
+pip3 install --user Pillow
+python3 tools/crop_slice.py
+```
+
+Saída (gitignored):
+
+```
+assets/private/sliced/blossom/idle.png
+assets/private/sliced/blossom/walk.png
+...
+assets/private/sliced/bubbles/
+assets/private/sliced/buttercup/
+```
+
+`--char blossom` faz só uma. Conferir: os PNG devem estar sem faixa preta.
+
