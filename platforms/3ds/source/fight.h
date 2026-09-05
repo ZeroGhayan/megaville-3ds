@@ -35,10 +35,12 @@ typedef struct {
 	int tap_age;
 	int shot_on;
 	int shot_hit;
+	int shot_kind; /* 1 blossom freeze  2 bubbles */
 	float shot_x, shot_y, shot_vx;
 } Fighter;
 
 int fight_is_blossom(const Fighter *f);
+int fight_is_bubbles(const Fighter *f);
 
 void fight_reset(Fighter *a, Fighter *b);
 void fight_control(Fighter *p, const Fighter *opp);

@@ -23,10 +23,8 @@ Cadeia no `_comboDone`: `upper` / `combo2` / `combo3u`.
 
 ## Blossom ranged
 
-No 3DS: X no idle/walk = beam (`STATE_RANGED`). Um tiro por vez.
-Hit = dano + `STATE_FROZEN` (~70 frames). Guarda não congela.
-Bubbles/Buttercup no X = heavy corpo-a-corpo.
-Beam atual é retângulo ciano; PNG 211 entra depois.
+Bubbles: X = bolha (mais lenta, hitstun, sem gelo).
+Buttercup: X = heavy corpo-a-corpo (sem tiro no original).
 
 ## CPU
 

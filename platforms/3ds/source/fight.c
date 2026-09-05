@@ -29,6 +29,16 @@ int fight_is_blossom(const Fighter *f)
 	return f->ch == 0;
 }
 
+int fight_is_bubbles(const Fighter *f)
+{
+	return f->ch == 1;
+}
+
+static int can_shoot(const Fighter *f)
+{
+	return (fight_is_blossom(f) || fight_is_bubbles(f)) && !f->shot_on;
+}
+
 static void start_dash(Fighter *p, int dir);
 
 #define DASH_MAX     300
@@ -86,7 +96,7 @@ static void try_attack(Fighter *f, int heavy)
 		return;
 
 	if (heavy) {
-		if (fight_is_blossom(f) && !f->shot_on) {
+		if (can_shoot(f)) {
 			start_move(f, MV_RANGED);
 			f->combo = 0;
 			return;
@@ -122,7 +132,8 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 	else if (dx < -4.0f)
 		f->face = -1;
 
-	if (fight_is_blossom(f) && adx > 140.0f && !f->shot_on && ai_roll(70)) {
+	if ((fight_is_blossom(f) || fight_is_bubbles(f)) &&
+	    adx > 140.0f && !f->shot_on && ai_roll(70)) {
 		f->vx = 0.0f;
 		try_attack(f, 1);
 		return;
@@ -298,13 +309,14 @@ void fight_physics(Fighter *p, float dt)
 		if (p->move == MV_RANGED && !p->shot_on) {
 			p->shot_on = 1;
 			p->shot_hit = 0;
+			p->shot_kind = fight_is_bubbles(p) ? 2 : 1;
 			p->shot_y = p->y + 16.0f;
 			if (p->face > 0) {
 				p->shot_x = p->x + p->w;
-				p->shot_vx = SHOT_SPD;
+				p->shot_vx = fight_is_bubbles(p) ? 180.0f : SHOT_SPD;
 			} else {
 				p->shot_x = p->x - SHOT_W;
-				p->shot_vx = -SHOT_SPD;
+				p->shot_vx = fight_is_bubbles(p) ? -180.0f : -SHOT_SPD;
 			}
 		}
 	} else if (p->phase == FIGHT_ACTIVE && p->timer <= 0) {
@@ -362,7 +374,7 @@ static void shot_hit(Fighter *att, Fighter *vic)
 		att->shot_on = 0;
 		if (vic->phase == FIGHT_GUARD) {
 			vic->x += att->face * 4.0f;
-		} else {
+		} else if (att->shot_kind == 1) {
 			vic->hp -= DAMAGE[MV_RANGED];
 			if (vic->hp < 0)
 				vic->hp = 0;
@@ -370,6 +382,14 @@ static void shot_hit(Fighter *att, Fighter *vic)
 			vic->timer = FREEZE_TIME;
 			vic->vx = 0.0f;
 			vic->vy = 0.0f;
+			vic->combo = 0;
+		} else {
+			vic->hp -= DAMAGE[MV_RANGED];
+			if (vic->hp < 0)
+				vic->hp = 0;
+			vic->phase = FIGHT_HIT;
+			vic->timer = 12;
+			vic->vx = att->face * 70.0f;
 			vic->combo = 0;
 		}
 	}
