@@ -1,6 +1,8 @@
 #include "fight.h"
 #include "binds.h"
 
+#include <stdlib.h>
+
 #define GROUND 200.0f
 #define GRAVITY 900.0f
 #define WALK 140.0f
@@ -25,6 +27,8 @@ int fight_is_blossom(const Fighter *f)
 {
 	return f->ch == 0;
 }
+
+static void start_dash(Fighter *p, int dir);
 
 #define DASH_MAX     300
 #define DASH_COST    100
@@ -94,23 +98,45 @@ static void try_attack(Fighter *f, int heavy)
 	}
 }
 
+static int ai_roll(int pct)
+{
+	return (rand() % 100) < pct;
+}
+
 static void ai_tick(Fighter *f, const Fighter *opp)
 {
 	float dx = opp->x - f->x;
+	float adx = dx < 0.0f ? -dx : dx;
 
+	if (f->phase == FIGHT_ACTIVE || f->phase == FIGHT_RECOVERY) {
+		if (ai_roll(65))
+			try_attack(f, ai_roll(28));
+		return;
+	}
 	if (!can_act(f))
 		return;
-	if (dx > 50.0f) {
-		f->vx = WALK;
+
+	if (dx > 4.0f)
 		f->face = 1;
-	} else if (dx < -50.0f) {
-		f->vx = -WALK;
+	else if (dx < -4.0f)
 		f->face = -1;
-	} else {
+
+	if (fight_is_blossom(f) && adx > 140.0f && !f->shot_on && ai_roll(70)) {
 		f->vx = 0.0f;
-		if ((opp->x + opp->w * 0.5f > f->x) == (f->face > 0))
-			try_attack(f, 0);
+		try_attack(f, 1);
+		return;
 	}
+
+	if (adx > 52.0f) {
+		f->vx = f->face > 0 ? WALK : -WALK;
+		if (adx > 160.0f && f->dashes >= 100 && ai_roll(8))
+			start_dash(f, f->face);
+		return;
+	}
+
+	f->vx = 0.0f;
+	if (opp->phase == FIGHT_FROZEN || !ai_roll(18))
+		try_attack(f, ai_roll(22));
 }
 
 void fight_reset(Fighter *a, Fighter *b)

@@ -30,4 +30,11 @@ Beam atual é retângulo ciano; PNG 211 entra depois.
 
 ## CPU
 
-AGGRESSIVE / DEFENSIVE / RANGED — ainda não portado.
+`AI_AGGRESSIVE` no 3DS:
+- aproxima a ~52 px
+- combo no recovery (65%)
+- Blossom longe (>140) = sopro
+- dash raro se muito longe
+- 18% de hesitar no golpe (eco de `AI_BASE_ERROR`)
+
+DEFENSIVE / RANGED ainda não.
