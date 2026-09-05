@@ -117,8 +117,17 @@ endif
 .PHONY: all clean
 
 #---------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------
+SLICE_DIR	:=	$(TOPDIR)/../../assets/private/sliced/blossom
+
 all:
-	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS)
+	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS) $(CURDIR)/gfx
+	@if [ -f $(SLICE_DIR)/idle.png ]; then \
+		cp -f $(SLICE_DIR)/*.png $(CURDIR)/gfx/; \
+		echo "sliced gfx staged"; \
+	else \
+		echo "no sliced pngs — boxes only"; \
+	fi
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------

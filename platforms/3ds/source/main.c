@@ -1,7 +1,7 @@
 #include "exo/platform.h"
 #include "exo/render.h"
 #include "binds.h"
-#include "fight.h"
+#include "sprites.h"
 
 #include <citro2d.h>
 #include <stdio.h>
@@ -46,6 +46,10 @@ static void draw_fighter(const Fighter *f, ExoEye eye)
 {
 	float px = exo_parallax(8.0f, eye);
 
+	if (meg_sprites_ok()) {
+		meg_draw_fighter(f, px);
+		return;
+	}
 	C2D_DrawRectSolid(f->x + px, f->y, 0.5f, f->w, f->h, phase_col(f));
 	if (f->phase == FIGHT_ACTIVE) {
 		float hx = f->face > 0 ? f->x + f->w : f->x - 22.0f;
@@ -193,6 +197,7 @@ int main(void)
 		return 1;
 	meg_binds_init();
 	fight_reset(&g_p1, &g_p2);
+	meg_sprites_init();
 
 	while (exo_frame_begin()) {
 		float dt = exo_dt();
@@ -219,6 +224,7 @@ int main(void)
 		exo_frame_end();
 	}
 
+	meg_sprites_fini();
 	exo_shutdown();
 	return 0;
 }

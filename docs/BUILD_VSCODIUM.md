@@ -48,7 +48,8 @@ Limpar: `make clean`.
 
 | Controle | Efeito |
 |---|---|
-| Circle Pad / D-Pad | mesma coisa: anda, pula, guarda |
+Sprites: `python3 tools/crop_slice.py` antes do `make`.
+O Makefile copia `assets/private/sliced/blossom/*.png` para `platforms/3ds/gfx/`.
 | JUMP (cima, ou A se ligado) | caixa sobe |
 | GUARD / LIGHT / HEAVY | muda a cor |
 | Start (PAUSE) | pausa |
