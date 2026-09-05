@@ -30,8 +30,34 @@ Antes do atlas: crop no bounding box (pixels ≠ preto).
 | 226–231 | — | flash (`_weakHit` + `_hitDone`) |
 | 565 | `stop` | pose final |
 
-H e L3 continuam nos buracos sem script. Candidatos: **95–107, 131–154, 180–222, 244+**.
+## Segunda leva (95–303)
 
-## Próximos PNG (se quiser fechar H)
+| PNG | Pose | Leitura |
+|---|---|---|
+| 95 | mergulho + anel no chão | **H / divekick** (95–107) |
+| 131 | em pé, cabelo ao lado | startup que termina no ar (155 → 62) |
+| 180 | agachada + anel | special no chão (vai até 223 → idle) |
+| 200 | em pé sobre disco branco | meio desse special |
+| 244 | agachada + anel | land / special (270 → air) |
+| 303 | em pé + anel | **win loop** (315 volta ao 303) |
 
-`95 131 180 200 244 303`
+O anel no chão se repete: não dá para separar L/H só por ele.
+95 é o único claramente “golpe diferente” (corpo na horizontal).
+
+## Slice mínimo para o 3DS
+
+| Ação | Frame a recortar |
+|---|---|
+| idle | 1 |
+| walk | 71 |
+| jump | 62 |
+| dash | 86 |
+| land | 50 |
+| L | 108 |
+| LL | 121 |
+| H | 95 |
+| flash | tint no código, não PNG 226 |
+| win | 303 (depois) |
+
+Chega de amostrar a Blossom. O mesmo número de frame vale para Bubbles/Buttercup.
+
