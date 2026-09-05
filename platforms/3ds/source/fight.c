@@ -22,7 +22,9 @@ static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
 #define BASE_DAMAGE 15 /* frame_254 DEFAULT_BASE_DAMAGE */
 #define BUBBLE_MUL  3.0f
 #define BUTCH_MUL   0.8f
-#define BLOSSOM_SHOT_MUL 6.0f /* thisSprite._damage no sopro; confirmar */
+#define BLOSSOM_SHOT_MUL 6.0f
+#define FREEZE_TIME 70
+#define SHOT_SPD 260.0f
 
 static int shot_dmg(const Fighter *att)
 {
