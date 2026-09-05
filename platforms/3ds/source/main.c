@@ -89,6 +89,12 @@ static void draw_eye(ExoEye eye)
 	if (g_ui != UI_SELECT) {
 		draw_fighter(&g_p1, eye);
 		draw_fighter(&g_p2, eye);
+		if (g_p1.shot_on)
+			C2D_DrawRectSolid(g_p1.shot_x + px, g_p1.shot_y, 0.55f,
+			                  28.0f, 8.0f, C2D_Color32(80, 200, 255, 230));
+		if (g_p2.shot_on)
+			C2D_DrawRectSolid(g_p2.shot_x + px, g_p2.shot_y, 0.55f,
+			                  28.0f, 8.0f, C2D_Color32(80, 200, 255, 230));
 	}
 	exo_top_text(200.0f, 8.0f, 0.50f, C2D_Color32(240, 240, 240, 255),
 	             "BATTLE IN MEGAVILLE 3D");

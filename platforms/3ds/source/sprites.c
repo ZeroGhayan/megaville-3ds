@@ -87,6 +87,8 @@ static int pick(const Fighter *f)
 		return SPR_LAND;
 	if (f->phase == FIGHT_STARTUP || f->phase == FIGHT_ACTIVE ||
 	    f->phase == FIGHT_RECOVERY) {
+		if (f->move == 5)
+			return SPR_LIGHT2;
 		if (f->move == 1 || f->move == 3)
 			return SPR_HEAVY;
 		if (f->move == 2 || f->move == 4)

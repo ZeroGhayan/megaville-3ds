@@ -32,7 +32,12 @@ typedef struct {
 	int dashed;     /* already dashed this tap */
 	int tap_dir;    /* last tap -1/0/+1 */
 	int tap_age;
+	int shot_on;
+	int shot_hit;
+	float shot_x, shot_y, shot_vx;
 } Fighter;
+
+int fight_is_blossom(const Fighter *f);
 
 void fight_reset(Fighter *a, Fighter *b);
 void fight_control(Fighter *p, const Fighter *opp);

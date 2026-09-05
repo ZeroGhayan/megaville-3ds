@@ -9,13 +9,22 @@
 #define RIGHT_WALL 392.0f
 
 /* Shared chains: L,L,L  L,L,H  L,H  — same for every character. */
-enum { MV_LIGHT = 0, MV_HEAVY, MV_LLL, MV_LLH, MV_LH };
+enum { MV_LIGHT = 0, MV_HEAVY, MV_LLL, MV_LLH, MV_LH, MV_RANGED };
 
-static const int STARTUP[]  = { 5, 8, 4, 5, 6 };
-static const int ACTIVE[]   = { 4, 5, 5, 5, 6 };
-static const int RECOVERY[] = { 10, 14, 12, 14, 16 };
-static const int DAMAGE[]   = { 80, 140, 100, 160, 180 };
-static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f };
+static const int STARTUP[]  = { 5, 8, 4, 5, 6, 8 };
+static const int ACTIVE[]   = { 4, 5, 5, 5, 6, 4 };
+static const int RECOVERY[] = { 10, 14, 12, 14, 16, 16 };
+static const int DAMAGE[]   = { 80, 140, 100, 160, 180, 90 };
+static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
+
+#define SHOT_SPD 260.0f
+#define SHOT_W   28.0f
+#define SHOT_H   8.0f
+
+int fight_is_blossom(const Fighter *f)
+{
+	return f->ch == 0;
+}
 
 #define DASH_MAX     300
 #define DASH_COST    100
@@ -72,6 +81,11 @@ static void try_attack(Fighter *f, int heavy)
 		return;
 
 	if (heavy) {
+		if (fight_is_blossom(f) && !f->shot_on) {
+			start_move(f, MV_RANGED);
+			f->combo = 0;
+			return;
+		}
 		start_move(f, MV_HEAVY);
 		f->combo = 0;
 	} else {
@@ -125,6 +139,8 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->dashed = b->dashed = 0;
 	a->tap_dir = b->tap_dir = 0;
 	a->tap_age = b->tap_age = 0;
+	a->shot_on = b->shot_on = 0;
+	a->shot_hit = b->shot_hit = 0;
 }
 
 static void start_dash(Fighter *p, int dir)
@@ -234,6 +250,12 @@ void fight_physics(Fighter *p, float dt)
 		}
 	}
 
+	if (p->shot_on) {
+		p->shot_x += p->shot_vx * dt;
+		if (p->shot_x < -40.0f || p->shot_x > 440.0f)
+			p->shot_on = 0;
+	}
+
 	if (p->timer > 0)
 		p->timer--;
 
@@ -241,6 +263,18 @@ void fight_physics(Fighter *p, float dt)
 		p->phase = FIGHT_ACTIVE;
 		p->timer = ACTIVE[p->move];
 		p->hit_done = 0;
+		if (p->move == MV_RANGED && !p->shot_on) {
+			p->shot_on = 1;
+			p->shot_hit = 0;
+			p->shot_y = p->y + 16.0f;
+			if (p->face > 0) {
+				p->shot_x = p->x + p->w;
+				p->shot_vx = SHOT_SPD;
+			} else {
+				p->shot_x = p->x - SHOT_W;
+				p->shot_vx = -SHOT_SPD;
+			}
+		}
 	} else if (p->phase == FIGHT_ACTIVE && p->timer <= 0) {
 		p->phase = FIGHT_RECOVERY;
 		p->timer = RECOVERY[p->move];
@@ -279,8 +313,36 @@ static void one_hit(Fighter *att, Fighter *vic)
 	}
 }
 
+static void shot_hit(Fighter *att, Fighter *vic)
+{
+	float hx, hy;
+
+	if (!att->shot_on || att->shot_hit)
+		return;
+	hx = att->shot_x;
+	hy = att->shot_y;
+	if (hx < vic->x + vic->w && hx + SHOT_W > vic->x &&
+	    hy < vic->y + vic->h && hy + SHOT_H > vic->y) {
+		att->shot_hit = 1;
+		att->shot_on = 0;
+		if (vic->phase == FIGHT_GUARD) {
+			vic->x += att->face * 4.0f;
+		} else {
+			vic->hp -= DAMAGE[MV_RANGED];
+			if (vic->hp < 0)
+				vic->hp = 0;
+			vic->phase = FIGHT_HIT;
+			vic->timer = 12;
+			vic->vx = att->face * 60.0f;
+			vic->combo = 0;
+		}
+	}
+}
+
 void fight_hits(Fighter *a, Fighter *b)
 {
 	one_hit(a, b);
 	one_hit(b, a);
+	shot_hit(a, b);
+	shot_hit(b, a);
 }
