@@ -20,6 +20,7 @@ static const int DAMAGE[]   = { 80, 140, 100, 160, 180, 90 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
 
 #define FREEZE_TIME 70
+#define SHOT_SPD 260.0f
 #define SHOT_W   28.0f
 #define SHOT_H   8.0f
 
