@@ -270,6 +270,8 @@ static void activate_row(void)
 		return;
 	}
 	g_ui = UI_PLAY;
+	if (g_intro > 0)
+		g_paused = 0;
 }
 
 static void tick_menu(void)
