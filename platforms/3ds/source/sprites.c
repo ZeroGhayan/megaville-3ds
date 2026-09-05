@@ -11,6 +11,8 @@ enum {
 	SPR_HEAVY,
 	SPR_LIGHT,
 	SPR_LIGHT2,
+	SPR_HIT,
+	SPR_KO,
 	SPR_COUNT
 };
 
@@ -46,11 +48,13 @@ int meg_sprites_ok(void)
 
 static int pick(const Fighter *f)
 {
+	if (f->hp <= 0)
+		return SPR_KO;
+	if (f->phase == FIGHT_HIT)
+		return SPR_HIT;
 	if (f->phase == FIGHT_JUMP)
 		return SPR_JUMP;
 	if (f->phase == FIGHT_GUARD)
-		return SPR_LAND;
-	if (f->phase == FIGHT_HIT)
 		return SPR_LAND;
 	if (f->phase == FIGHT_STARTUP || f->phase == FIGHT_ACTIVE ||
 	    f->phase == FIGHT_RECOVERY) {
@@ -75,7 +79,8 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 	img = g_img[pick(f)];
 	w = img.subtex->width;
 	h = img.subtex->height;
-	sx = f->face >= 0 ? 1.0f : -1.0f;
+	/* arte nativa olha para a ESQUERDA; face +1 = direita = flip */
+	sx = f->face >= 0 ? -1.0f : 1.0f;
 	x = f->x + parallax + (f->w - w) * 0.5f;
 	y = f->y + f->h - h;
 	if (sx < 0.0f)

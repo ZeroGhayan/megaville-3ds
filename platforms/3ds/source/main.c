@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #define GROUND_Y 200.0f
+#define INTRO_LEN 240
 
 enum {
 	UI_PLAY = 0,
@@ -25,6 +26,14 @@ static int g_paused;
 static int g_ui = UI_PLAY;
 static int g_row;
 static int g_saved_ok = 1;
+static int g_intro = INTRO_LEN;
+
+static void round_reset(void)
+{
+	fight_reset(&g_p1, &g_p2);
+	g_intro = INTRO_LEN;
+	g_paused = 0;
+}
 
 static u32 phase_col(const Fighter *f)
 {
@@ -70,8 +79,17 @@ static void draw_eye(ExoEye eye)
 	draw_fighter(&g_p2, eye);
 	exo_top_text(200.0f, 8.0f, 0.50f, C2D_Color32(240, 240, 240, 255),
 	             "BATTLE IN MEGAVILLE 3D");
-	exo_top_text(200.0f, 26.0f, 0.38f, C2D_Color32(180, 200, 220, 255),
-	             "Y light  X heavy  SELECT binds");
+	if (g_intro > 180)
+		exo_top_text(200.0f, 100.0f, 1.4f, C2D_Color32(255, 220, 80, 255), "3");
+	else if (g_intro > 120)
+		exo_top_text(200.0f, 100.0f, 1.4f, C2D_Color32(255, 220, 80, 255), "2");
+	else if (g_intro > 60)
+		exo_top_text(200.0f, 100.0f, 1.4f, C2D_Color32(255, 220, 80, 255), "1");
+	else if (g_intro > 0)
+		exo_top_text(200.0f, 100.0f, 0.9f, C2D_Color32(255, 80, 80, 255), "FIGHT");
+	else
+		exo_top_text(200.0f, 26.0f, 0.38f, C2D_Color32(180, 200, 220, 255),
+		             "Y light  X heavy  SELECT binds");
 }
 
 static void draw_play_hud(void)
@@ -87,7 +105,7 @@ static void draw_play_hud(void)
 	exo_bot_rect(8, 48, (float)g_p2.hp * 1.4f, 10,
 	             C2D_Color32(180, 90, 160, 255));
 	exo_text(8, 72, 0.45f, C2D_Color32(200, 220, 255, 255),
-	         g_paused ? "PAUSED" : "LLL  LLH  LH");
+	         g_intro > 0 ? "GET READY" : (g_paused ? "PAUSED" : "LLL  LLH  LH"));
 	exo_text(8, 210, 0.4f, C2D_Color32(120, 120, 140, 255),
 	         "SELECT options   HOME exit");
 }
@@ -128,13 +146,17 @@ static void draw_menu(void)
 
 static void tick_play(float dt)
 {
-	if (meg_down(MEG_ACT_PAUSE))
+	if (meg_down(MEG_ACT_PAUSE) && g_intro <= 0)
 		g_paused ^= 1;
 	if (g_paused)
 		return;
+	if (g_intro > 0) {
+		g_intro--;
+		return;
+	}
 	if (g_p1.hp <= 0 || g_p2.hp <= 0) {
 		if (meg_down(MEG_ACT_LIGHT) || meg_down(MEG_ACT_HEAVY))
-			fight_reset(&g_p1, &g_p2);
+			round_reset();
 		return;
 	}
 	fight_control(&g_p1, &g_p2);
@@ -196,7 +218,7 @@ int main(void)
 	if (!exo_init())
 		return 1;
 	meg_binds_init();
-	fight_reset(&g_p1, &g_p2);
+	round_reset();
 	meg_sprites_init();
 
 	while (exo_frame_begin()) {

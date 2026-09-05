@@ -29,6 +29,7 @@ CHARS = {
 }
 
 # frame number in the clip → action name
+# conferido no contact sheet do clip 471 (arte olha para a ESQUERDA)
 SLICE = {
     1: "idle",
     50: "land",
@@ -36,8 +37,10 @@ SLICE = {
     71: "walk",
     86: "dash",
     95: "heavy",
-    108: "light",
-    121: "light2",
+    113: "light",
+    126: "light2",
+    277: "hit",
+    301: "ko",
 }
 
 BLACK = 18
