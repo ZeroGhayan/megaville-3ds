@@ -35,8 +35,13 @@ Isso é idle / walk / jump / guard / cadeia L. O resto do clip é special.
 - 59 sons (`*.mp3` / `*.flv`) até existir mapeamento
 - 167 sprites anônimos (`DefineSprite_123`)
 
-## Próximo olhar no FFDec
+## O que os DoAction fazem
 
-Abrir **só** `scripts/DefineSprite_471_Blossom/frame_49` e `frame_108`.
-Lá deve estar `gotoAndPlay`, hitbox e o nome da ação.
-Os outros chars copiam a mesma tabela de frames.
+Não há `playIdle()`. É flag no frame:
+
+- `frame_49` → `gotoAndPlay(1);` — fim de um loop (quase certo idle 1–48)
+- `frame_108` → `_weakHit = true;` — frame ativo do golpe fraco
+
+O resto dos keyframes (`58 61 70 85 94 113…`) deve ser a mesma coisa:
+`gotoAndPlay`, `_weakHit`, `_strongHit`, `_guard`, hitstun, projétil.
+
