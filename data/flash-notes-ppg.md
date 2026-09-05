@@ -7,7 +7,18 @@
 ## Bubbles
 - Spawn `projectile` em `_x ± 20`, `_y` da sprite
 - `_yspd = 0` no chão; `_yspd = 5` (×2 se `_fast`) noutro ramo
-- `_damage = 3` (escala Flash; no 3DS ainda usamos 90)
+Dano Flash:
+
+```
+BUTCH_DAMAGE = 0.8
+BOOMER_DAMAGE = 2
+Bubbles projectile._damage = 3
+dmg = _damage * BASE_DAMAGE     (ou /5 noutro ramo)
+```
+
+3DS assume `BASE_DAMAGE = 30` até ler o valor:
+Bubbles 90, Butch 24, sopro 90+gelo.
+
 - Não congela
 
 ## Buttercup

@@ -19,7 +19,18 @@ static const int RECOVERY[] = { 10, 14, 12, 14, 16, 16 };
 static const int DAMAGE[]   = { 80, 140, 100, 160, 180, 90 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
 
-#define FREEZE_TIME 70
+#define BASE_DAMAGE 30 /* Flash; confirmar no 1479 */
+#define BUBBLE_MUL  3
+#define BUTCH_MUL   0.8f
+
+static int shot_dmg(const Fighter *att)
+{
+	if (att->shot_kind == 2)
+		return (int)(BUBBLE_MUL * BASE_DAMAGE);
+	if (att->shot_kind == 3)
+		return (int)(BUTCH_MUL * BASE_DAMAGE);
+	return 90;
+}
 #define SHOT_SPD 260.0f
 #define SHOT_W   28.0f
 #define SHOT_H   8.0f
@@ -394,7 +405,7 @@ static void shot_hit(Fighter *att, Fighter *vic)
 		if (vic->phase == FIGHT_GUARD) {
 			vic->x += att->face * 4.0f;
 		} else if (att->shot_kind == 1) {
-			vic->hp -= DAMAGE[MV_RANGED];
+			vic->hp -= shot_dmg(att);
 			if (vic->hp < 0)
 				vic->hp = 0;
 			vic->phase = FIGHT_FROZEN;
@@ -403,7 +414,7 @@ static void shot_hit(Fighter *att, Fighter *vic)
 			vic->vy = 0.0f;
 			vic->combo = 0;
 		} else {
-			vic->hp -= DAMAGE[MV_RANGED];
+			vic->hp -= shot_dmg(att);
 			if (vic->hp < 0)
 				vic->hp = 0;
 			vic->phase = FIGHT_HIT;
