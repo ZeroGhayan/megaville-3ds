@@ -79,6 +79,8 @@ static int pick(const Fighter *f)
 		return SPR_KO;
 	if (f->phase == FIGHT_HIT)
 		return SPR_HIT;
+	if (f->phase == FIGHT_FROZEN)
+		return SPR_HIT;
 	if (f->phase == FIGHT_DASH)
 		return SPR_DASH;
 	if (f->phase == FIGHT_JUMP)

@@ -10,7 +10,8 @@ typedef enum {
 	FIGHT_ACTIVE,
 	FIGHT_RECOVERY,
 	FIGHT_HIT,
-	FIGHT_DASH
+	FIGHT_DASH,
+	FIGHT_FROZEN
 } FightPhase;
 
 typedef struct {

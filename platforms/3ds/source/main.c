@@ -68,6 +68,9 @@ static void draw_fighter(const Fighter *f, ExoEye eye)
 
 	if (meg_sprites_ok()) {
 		meg_draw_fighter(f, px);
+		if (f->phase == FIGHT_FROZEN)
+			C2D_DrawRectSolid(f->x + px, f->y, 0.7f, f->w, f->h,
+			                  C2D_Color32(120, 200, 255, 110));
 		return;
 	}
 	C2D_DrawRectSolid(f->x + px, f->y, 0.5f, f->w, f->h, phase_col(f));

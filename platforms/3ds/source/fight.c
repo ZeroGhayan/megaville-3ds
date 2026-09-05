@@ -17,7 +17,7 @@ static const int RECOVERY[] = { 10, 14, 12, 14, 16, 16 };
 static const int DAMAGE[]   = { 80, 140, 100, 160, 180, 90 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
 
-#define SHOT_SPD 260.0f
+#define FREEZE_TIME 70
 #define SHOT_W   28.0f
 #define SHOT_H   8.0f
 
@@ -167,6 +167,8 @@ static void tap_dash(Fighter *p, int dir)
 
 void fight_control(Fighter *p, const Fighter *opp)
 {
+	if (p->phase == FIGHT_FROZEN || p->phase == FIGHT_HIT)
+		return;
 	if (p->tap_age > 0 && p->tap_age < 60)
 		p->tap_age++;
 
@@ -216,6 +218,9 @@ void fight_control(Fighter *p, const Fighter *opp)
 
 void fight_physics(Fighter *p, float dt)
 {
+	if (p->phase == FIGHT_FROZEN)
+		p->vx = 0.0f;
+
 	p->x += p->vx * dt;
 	p->vy += GRAVITY * dt;
 	p->y += p->vy * dt;
@@ -283,6 +288,9 @@ void fight_physics(Fighter *p, float dt)
 		p->combo = 0;
 	} else if (p->phase == FIGHT_HIT && p->timer <= 0) {
 		p->phase = FIGHT_IDLE;
+	} else if (p->phase == FIGHT_FROZEN && p->timer <= 0) {
+		p->phase = FIGHT_IDLE;
+		p->vx = 0.0f;
 	}
 }
 
@@ -331,9 +339,10 @@ static void shot_hit(Fighter *att, Fighter *vic)
 			vic->hp -= DAMAGE[MV_RANGED];
 			if (vic->hp < 0)
 				vic->hp = 0;
-			vic->phase = FIGHT_HIT;
-			vic->timer = 12;
-			vic->vx = att->face * 60.0f;
+			vic->phase = FIGHT_FROZEN;
+			vic->timer = FREEZE_TIME;
+			vic->vx = 0.0f;
+			vic->vy = 0.0f;
 			vic->combo = 0;
 		}
 	}
