@@ -1,0 +1,31 @@
+# build
+platforms/3ds/build/
+*.3dsx
+*.cia
+*.elf
+*.smdh
+*.o
+*.d
+*.map
+
+# generated gfx
+platforms/3ds/romfs/
+platforms/3ds/gfx/*.png
+romfs/gfx/
+
+# --- private / third-party IP (keep on disk, never push) ---
+assets/raw/
+assets/private/
+*.swf
+*.fla
+*.sol
+
+# licensed audio dropped locally (Capcom OST, ripped SFX, etc.)
+romfs/audio/licensed/
+romfs/audio/capcom/
+romfs/audio/private/
+
+# OS
+.DS_Store
+Thumbs.db
+*~
