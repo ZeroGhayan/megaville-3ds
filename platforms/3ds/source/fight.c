@@ -101,8 +101,8 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 
 void fight_reset(Fighter *a, Fighter *b)
 {
-	a->x = 70.0f;
-	b->x = 280.0f;
+	a->x = 100.0f;
+	b->x = 300.0f;
 	a->y = b->y = GROUND - 40.0f;
 	a->w = b->w = 28.0f;
 	a->h = b->h = 40.0f;
