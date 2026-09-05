@@ -296,8 +296,11 @@ static void tick_menu(void)
 		g_row++;
 	if (meg_raw_down(EXO_BTN_A))
 		activate_row();
-	if (meg_raw_down(EXO_BTN_B) || meg_raw_down(EXO_BTN_SELECT))
+	if (meg_raw_down(EXO_BTN_B) || meg_raw_down(EXO_BTN_SELECT)) {
 		g_ui = UI_PLAY;
+		if (g_intro > 0)
+			g_paused = 0;
+	}
 }
 
 int main(void)
@@ -315,7 +318,8 @@ int main(void)
 
 		if (g_ui == UI_SELECT) {
 			tick_select();
-		} else if (g_ui == UI_PLAY && meg_raw_down(EXO_BTN_SELECT)) {
+		} else if (g_ui == UI_PLAY && meg_raw_down(EXO_BTN_SELECT) &&
+		           g_intro <= 0) {
 			g_ui = UI_MENU;
 			g_paused = 1;
 		} else if (g_ui == UI_PLAY) {

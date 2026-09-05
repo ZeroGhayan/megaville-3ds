@@ -140,8 +140,8 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 	float adx = dx < 0.0f ? -dx : dx;
 
 	if (f->phase == FIGHT_ACTIVE || f->phase == FIGHT_RECOVERY) {
-		if (ai_roll(65))
-			try_attack(f, ai_roll(28));
+		if (ai_roll(8))
+			try_attack(f, ai_roll(20));
 		return;
 	}
 	if (!can_act(f))
@@ -153,7 +153,7 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 		f->face = -1;
 
 	if ((fight_is_blossom(f) || fight_is_bubbles(f) || fight_is_buttercup(f)) &&
-	    adx > 140.0f && !f->shot_on && ai_roll(70)) {
+	    adx > 140.0f && !f->shot_on && ai_roll(28)) {
 		f->vx = 0.0f;
 		try_attack(f, 1);
 		return;
@@ -161,14 +161,19 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 
 	if (adx > 52.0f) {
 		f->vx = f->face > 0 ? WALK : -WALK;
-		if (adx > 160.0f && f->dashes >= 100 && ai_roll(8))
+		if (adx > 180.0f && f->dashes >= 100 && ai_roll(3))
 			start_dash(f, f->face);
 		return;
 	}
 
 	f->vx = 0.0f;
-	if (opp->phase == FIGHT_FROZEN || !ai_roll(18))
-		try_attack(f, ai_roll(22));
+	if (opp->phase == FIGHT_FROZEN) {
+		if (ai_roll(30))
+			try_attack(f, 0);
+		return;
+	}
+	if (ai_roll(45))
+		try_attack(f, ai_roll(18));
 }
 
 void fight_reset(Fighter *a, Fighter *b)
