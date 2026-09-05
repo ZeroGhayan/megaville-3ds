@@ -34,9 +34,15 @@ int fight_is_bubbles(const Fighter *f)
 	return f->ch == 1;
 }
 
+int fight_is_buttercup(const Fighter *f)
+{
+	return f->ch == 2;
+}
+
 static int can_shoot(const Fighter *f)
 {
-	return (fight_is_blossom(f) || fight_is_bubbles(f)) && !f->shot_on;
+	return !f->shot_on && (fight_is_blossom(f) || fight_is_bubbles(f) ||
+	                       fight_is_buttercup(f));
 }
 
 static void start_dash(Fighter *p, int dir);
@@ -132,7 +138,7 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 	else if (dx < -4.0f)
 		f->face = -1;
 
-	if ((fight_is_blossom(f) || fight_is_bubbles(f)) &&
+	if ((fight_is_blossom(f) || fight_is_bubbles(f) || fight_is_buttercup(f)) &&
 	    adx > 140.0f && !f->shot_on && ai_roll(70)) {
 		f->vx = 0.0f;
 		try_attack(f, 1);
@@ -309,14 +315,27 @@ void fight_physics(Fighter *p, float dt)
 		if (p->move == MV_RANGED && !p->shot_on) {
 			p->shot_on = 1;
 			p->shot_hit = 0;
-			p->shot_kind = fight_is_bubbles(p) ? 2 : 1;
-			p->shot_y = p->y + 16.0f;
-			if (p->face > 0) {
-				p->shot_x = p->x + p->w;
-				p->shot_vx = fight_is_bubbles(p) ? 180.0f : SHOT_SPD;
-			} else {
-				p->shot_x = p->x - SHOT_W;
-				p->shot_vx = fight_is_bubbles(p) ? -180.0f : -SHOT_SPD;
+			if (fight_is_bubbles(p))
+				p->shot_kind = 2;
+			else if (fight_is_buttercup(p))
+				p->shot_kind = 3;
+			else
+				p->shot_kind = 1;
+			p->shot_y = fight_is_buttercup(p) ? (GROUND - 18.0f)
+			                                 : (p->y + 16.0f);
+			{
+				float spd = SHOT_SPD;
+				if (p->shot_kind == 2)
+					spd = 180.0f;
+				if (p->shot_kind == 3)
+					spd = 200.0f;
+				if (p->face > 0) {
+					p->shot_x = p->x + p->w;
+					p->shot_vx = spd;
+				} else {
+					p->shot_x = p->x - SHOT_W;
+					p->shot_vx = -spd;
+				}
 			}
 		}
 	} else if (p->phase == FIGHT_ACTIVE && p->timer <= 0) {

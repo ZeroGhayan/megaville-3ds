@@ -62,7 +62,23 @@ static u32 phase_col(const Fighter *f)
 	             : C2D_Color32(220, 196, 72, 255);
 }
 
-static void draw_fighter(const Fighter *f, ExoEye eye)
+static void draw_shot(const Fighter *f, float px)
+{
+	float w = 28.0f, h = 8.0f;
+	u32 col = C2D_Color32(80, 200, 255, 230);
+
+	if (!f->shot_on)
+		return;
+	if (f->shot_kind == 2) {
+		w = h = 14.0f;
+		col = C2D_Color32(255, 180, 230, 230);
+	} else if (f->shot_kind == 3) {
+		w = 22.0f;
+		h = 10.0f;
+		col = C2D_Color32(80, 220, 90, 230);
+	}
+	C2D_DrawRectSolid(f->shot_x + px, f->shot_y, 0.55f, w, h, col);
+}
 {
 	float px = exo_parallax(8.0f, eye);
 
@@ -92,20 +108,8 @@ static void draw_eye(ExoEye eye)
 	if (g_ui != UI_SELECT) {
 		draw_fighter(&g_p1, eye);
 		draw_fighter(&g_p2, eye);
-		if (g_p1.shot_on)
-			C2D_DrawRectSolid(g_p1.shot_x + px, g_p1.shot_y, 0.55f,
-			                  g_p1.shot_kind == 2 ? 14.0f : 28.0f,
-			                  g_p1.shot_kind == 2 ? 14.0f : 8.0f,
-			                  g_p1.shot_kind == 2
-			                      ? C2D_Color32(255, 180, 230, 230)
-			                      : C2D_Color32(80, 200, 255, 230));
-		if (g_p2.shot_on)
-			C2D_DrawRectSolid(g_p2.shot_x + px, g_p2.shot_y, 0.55f,
-			                  g_p2.shot_kind == 2 ? 14.0f : 28.0f,
-			                  g_p2.shot_kind == 2 ? 14.0f : 8.0f,
-			                  g_p2.shot_kind == 2
-			                      ? C2D_Color32(255, 180, 230, 230)
-			                      : C2D_Color32(80, 200, 255, 230));
+		draw_shot(&g_p1, px);
+		draw_shot(&g_p2, px);
 	}
 	exo_top_text(200.0f, 8.0f, 0.50f, C2D_Color32(240, 240, 240, 255),
 	             "BATTLE IN MEGAVILLE 3D");
