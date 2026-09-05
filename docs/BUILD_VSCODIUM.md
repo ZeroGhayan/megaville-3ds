@@ -44,17 +44,21 @@ Saída: `platforms/3ds/megaville.3dsx` (+ `.elf` / `.smdh`).
 
 Limpar: `make clean`.
 
-## Lime3DS
+## Lime3DS — hello atual
 
-Abra o `.3dsx` no Lime3DS (Arquivo → Carregar, ou arraste).
-New 3DS no perfil do emulador.
-
-| Controle | Efeito neste hello |
+| Controle | Efeito |
 |---|---|
-| Circle Pad / D-Pad | move a caixa |
-| Y / X | acende no HUD |
-| Start | pausa |
-| HOME do emulador | sai |
+| Circle Pad / binds de LEFT-RIGHT | move a caixa |
+| JUMP (cima, ou A se ligado) | caixa sobe |
+| GUARD / LIGHT / HEAVY | muda a cor |
+| Start (PAUSE) | pausa |
+| **Select** | menu de controles (fixo) |
+| HOME | sai |
+
+No menu: D-Pad sobe/desce, **A** edita ou liga opção, **B** volta.
+Na captura, aperte o botão novo; Select cancela. Grava em
+`sdmc:/3ds/megaville/binds.cfg`.
+
 
 ## SWF e áudio privado
 
