@@ -79,6 +79,8 @@ static void draw_shot(const Fighter *f, float px)
 	}
 	C2D_DrawRectSolid(f->shot_x + px, f->shot_y, 0.55f, w, h, col);
 }
+
+static void draw_fighter(const Fighter *f, ExoEye eye)
 {
 	float px = exo_parallax(8.0f, eye);
 
