@@ -75,7 +75,7 @@ int meg_sprites_ok(void)
 
 int meg_sprites_ok_ch(int ch)
 {
-	if (ch < 0 || ch >= NCHAR)
+	if (ch < 0 || ch >= CH_COUNT)
 		return 0;
 	return g_ok[ch];
 }
