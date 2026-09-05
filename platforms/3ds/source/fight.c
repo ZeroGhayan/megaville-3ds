@@ -19,17 +19,18 @@ static const int RECOVERY[] = { 10, 14, 12, 14, 16, 16 };
 static const int DAMAGE[]   = { 80, 140, 100, 160, 180, 90 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
 
-#define BASE_DAMAGE 30 /* Flash; confirmar no 1479 */
-#define BUBBLE_MUL  3
+#define BASE_DAMAGE 15 /* frame_254 DEFAULT_BASE_DAMAGE */
+#define BUBBLE_MUL  3.0f
 #define BUTCH_MUL   0.8f
+#define BLOSSOM_SHOT_MUL 6.0f /* thisSprite._damage no sopro; confirmar */
 
 static int shot_dmg(const Fighter *att)
 {
 	if (att->shot_kind == 2)
-		return (int)(BUBBLE_MUL * BASE_DAMAGE);
+		return (int)(BUBBLE_MUL * BASE_DAMAGE); /* 45 */
 	if (att->shot_kind == 3)
-		return (int)(BUTCH_MUL * BASE_DAMAGE);
-	return 90;
+		return (int)(BUTCH_MUL * BASE_DAMAGE); /* 12 */
+	return (int)(BLOSSOM_SHOT_MUL * BASE_DAMAGE); /* 90 */
 }
 #define SHOT_SPD 260.0f
 #define SHOT_W   28.0f

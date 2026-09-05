@@ -10,14 +10,16 @@
 Dano Flash:
 
 ```
-BUTCH_DAMAGE = 0.8
-BOOMER_DAMAGE = 2
-Bubbles projectile._damage = 3
-dmg = _damage * BASE_DAMAGE     (ou /5 noutro ramo)
+DEFAULT_BASE_DAMAGE = 15   // frame_254
+BASE_DAMAGE = 15 * _damagemult
+Bubbles  _damage = 3   →  45  (ou 9 se /5)
+Butch    0.8           →  12
+Boomer   2             →  30
+Sopro    thisSprite._damage * 15  (chute: _damage=6 → 90)
 ```
 
-3DS assume `BASE_DAMAGE = 30` até ler o valor:
-Bubbles 90, Butch 24, sopro 90+gelo.
+O ramo `/5` é tick; o impacto usa `* BASE_DAMAGE`.
+
 
 - Não congela
 
