@@ -1,14 +1,12 @@
 #include "exo/platform.h"
 #include "exo/render.h"
 #include "binds.h"
+#include "fight.h"
 
 #include <citro2d.h>
 #include <stdio.h>
 
 #define GROUND_Y 200.0f
-#define BOX_W    28.0f
-#define BOX_H    40.0f
-#define WALK     140.0f
 
 enum {
 	UI_PLAY = 0,
@@ -16,71 +14,76 @@ enum {
 	UI_CAPTURE
 };
 
-#define ROW_ACT0   0
 #define ROW_ACTN   MEG_ACT_COUNT
 #define ROW_JUMP_A MEG_ACT_COUNT
 #define ROW_RESET  (MEG_ACT_COUNT + 1)
 #define ROW_BACK   (MEG_ACT_COUNT + 2)
 #define ROW_MAX    (ROW_BACK + 1)
 
-static float g_x = 80.0f;
-static float g_y = GROUND_Y - BOX_H;
-static int   g_face = 1;
-static int   g_paused;
-static int   g_ui = UI_PLAY;
-static int   g_row;
-static int   g_saved_ok = 1;
+static Fighter g_p1, g_p2;
+static int g_paused;
+static int g_ui = UI_PLAY;
+static int g_row;
+static int g_saved_ok = 1;
+
+static u32 phase_col(const Fighter *f)
+{
+	if (f->phase == FIGHT_GUARD)
+		return C2D_Color32(80, 140, 220, 255);
+	if (f->phase == FIGHT_ACTIVE)
+		return C2D_Color32(240, 220, 80, 255);
+	if (f->phase == FIGHT_STARTUP)
+		return C2D_Color32(220, 160, 60, 255);
+	if (f->phase == FIGHT_HIT)
+		return C2D_Color32(220, 80, 70, 255);
+	if (f->hp <= 0)
+		return C2D_Color32(40, 40, 40, 255);
+	return f->ai ? C2D_Color32(180, 90, 160, 255)
+	             : C2D_Color32(220, 196, 72, 255);
+}
+
+static void draw_fighter(const Fighter *f, ExoEye eye)
+{
+	float px = exo_parallax(8.0f, eye);
+
+	C2D_DrawRectSolid(f->x + px, f->y, 0.5f, f->w, f->h, phase_col(f));
+	if (f->phase == FIGHT_ACTIVE) {
+		float hx = f->face > 0 ? f->x + f->w : f->x - 22.0f;
+		C2D_DrawRectSolid(hx + px, f->y + 8.0f, 0.6f, 22.0f, 16.0f,
+		                  C2D_Color32(255, 255, 255, 180));
+	}
+}
 
 static void draw_eye(ExoEye eye)
 {
 	float px;
-	u32 col;
 
 	exo_render_eye(eye, C2D_Color32(28, 36, 56, 255));
-
 	px = exo_parallax(4.0f, eye);
 	C2D_DrawRectSolid(0.0f + px, GROUND_Y, 0.4f, 400.0f, 40.0f,
 	                  C2D_Color32(46, 72, 58, 255));
-
-	px = exo_parallax(8.0f, eye);
-	if (meg_held(MEG_ACT_GUARD))
-		col = C2D_Color32(80, 140, 220, 255);
-	else if (meg_held(MEG_ACT_LIGHT))
-		col = C2D_Color32(240, 220, 80, 255);
-	else if (meg_held(MEG_ACT_HEAVY))
-		col = C2D_Color32(220, 80, 70, 255);
-	else if (g_paused || g_ui != UI_PLAY)
-		col = C2D_Color32(120, 120, 120, 255);
-	else
-		col = C2D_Color32(220, 196, 72, 255);
-	C2D_DrawRectSolid(g_x + px, g_y, 0.5f, BOX_W, BOX_H, col);
-
-	exo_top_text(200.0f, 8.0f, 0.52f, C2D_Color32(240, 240, 240, 255),
+	draw_fighter(&g_p1, eye);
+	draw_fighter(&g_p2, eye);
+	exo_top_text(200.0f, 8.0f, 0.50f, C2D_Color32(240, 240, 240, 255),
 	             "BATTLE IN MEGAVILLE 3D");
-	exo_top_text(200.0f, 28.0f, 0.40f, C2D_Color32(180, 200, 220, 255),
-	             "SELECT = controls");
+	exo_top_text(200.0f, 26.0f, 0.38f, C2D_Color32(180, 200, 220, 255),
+	             "Y light  X heavy  SELECT binds");
 }
 
 static void draw_play_hud(void)
 {
 	char buf[48];
-	char jl[16], ll[16], hl[16];
-
-	meg_mask_label(meg_binds()->mask[MEG_ACT_JUMP], jl, sizeof jl);
-	meg_mask_label(meg_binds()->mask[MEG_ACT_LIGHT], ll, sizeof ll);
-	meg_mask_label(meg_binds()->mask[MEG_ACT_HEAVY], hl, sizeof hl);
 
 	exo_render_bottom(C2D_Color32(16, 16, 24, 255));
 	exo_text_begin();
-	exo_text(8, 8, 0.5f, C2D_Color32(255, 255, 255, 255), "PLAY");
-	snprintf(buf, sizeof buf, "L %s  H %s  J %s", ll, hl, jl);
-	exo_text(8, 32, 0.45f, C2D_Color32(200, 220, 255, 255), buf);
-	snprintf(buf, sizeof buf, "L=%d H=%d J=%d G=%d",
-	         meg_held(MEG_ACT_LIGHT), meg_held(MEG_ACT_HEAVY),
-	         meg_held(MEG_ACT_JUMP), meg_held(MEG_ACT_GUARD));
-	exo_text(8, 56, 0.5f, C2D_Color32(255, 220, 120, 255), buf);
-	exo_text(8, 88, 0.5f, C2D_Color32(160, 160, 180, 255),
-	         g_paused ? "PAUSED" : "MOVE THE BOX");
+	snprintf(buf, sizeof buf, "P1 %d   CPU %d", g_p1.hp, g_p2.hp);
+	exo_text(8, 8, 0.5f, C2D_Color32(255, 255, 255, 255), buf);
+	exo_bot_rect(8, 32, (float)g_p1.hp * 1.4f, 10,
+	             C2D_Color32(220, 196, 72, 255));
+	exo_bot_rect(8, 48, (float)g_p2.hp * 1.4f, 10,
+	             C2D_Color32(180, 90, 160, 255));
+	exo_text(8, 72, 0.45f, C2D_Color32(200, 220, 255, 255),
+	         g_paused ? "PAUSED" : "LLL  LLH  LH");
 	exo_text(8, 210, 0.4f, C2D_Color32(120, 120, 140, 255),
 	         "SELECT options   HOME exit");
 }
@@ -121,33 +124,20 @@ static void draw_menu(void)
 
 static void tick_play(float dt)
 {
-	float ax = 0.0f;
-
 	if (meg_down(MEG_ACT_PAUSE))
 		g_paused ^= 1;
-
 	if (g_paused)
 		return;
-
-	if (meg_held(MEG_ACT_LEFT))
-		ax -= 1.0f;
-	if (meg_held(MEG_ACT_RIGHT))
-		ax += 1.0f;
-	g_x += ax * WALK * dt;
-	if (ax < -0.2f)
-		g_face = -1;
-	if (ax > 0.2f)
-		g_face = 1;
-	if (g_x < 8.0f)
-		g_x = 8.0f;
-	if (g_x > 400.0f - BOX_W - 8.0f)
-		g_x = 400.0f - BOX_W - 8.0f;
-
-	if (meg_held(MEG_ACT_JUMP))
-		g_y = GROUND_Y - BOX_H - 18.0f;
-	else
-		g_y = GROUND_Y - BOX_H;
-	(void)g_face;
+	if (g_p1.hp <= 0 || g_p2.hp <= 0) {
+		if (meg_down(MEG_ACT_LIGHT) || meg_down(MEG_ACT_HEAVY))
+			fight_reset(&g_p1, &g_p2);
+		return;
+	}
+	fight_control(&g_p1, &g_p2);
+	fight_control(&g_p2, &g_p1);
+	fight_physics(&g_p1, dt);
+	fight_physics(&g_p2, dt);
+	fight_hits(&g_p1, &g_p2);
 }
 
 static void activate_row(void)
@@ -202,6 +192,7 @@ int main(void)
 	if (!exo_init())
 		return 1;
 	meg_binds_init();
+	fight_reset(&g_p1, &g_p2);
 
 	while (exo_frame_begin()) {
 		float dt = exo_dt();

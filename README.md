@@ -12,8 +12,8 @@ Camada de plataforma copiada de
 
 ## Status
 
-Hello 3DS: duas telas, caixa móvel no pad, Y/X/Start no HUD.
-Ainda não é o lutador.
+P1 vs CPU em caixas. Combos LLL / LLH / LH. Sem sprites.
+Extração do SWF: [`docs/EXTRACT.md`](docs/EXTRACT.md).
 
 Build local: [`docs/BUILD_VSCODIUM.md`](docs/BUILD_VSCODIUM.md).
 
