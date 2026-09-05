@@ -48,7 +48,7 @@ Limpar: `make clean`.
 
 | Controle | Efeito |
 |---|---|
-| Circle Pad / binds de LEFT-RIGHT | move a caixa |
+| Circle Pad / D-Pad | mesma coisa: anda, pula, guarda |
 | JUMP (cima, ou A se ligado) | caixa sobe |
 | GUARD / LIGHT / HEAVY | muda a cor |
 | Start (PAUSE) | pausa |

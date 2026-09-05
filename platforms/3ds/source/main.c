@@ -19,9 +19,8 @@ enum {
 #define ROW_ACT0   0
 #define ROW_ACTN   MEG_ACT_COUNT
 #define ROW_JUMP_A MEG_ACT_COUNT
-#define ROW_JUMP_U (MEG_ACT_COUNT + 1)
-#define ROW_RESET  (MEG_ACT_COUNT + 2)
-#define ROW_BACK   (MEG_ACT_COUNT + 3)
+#define ROW_RESET  (MEG_ACT_COUNT + 1)
+#define ROW_BACK   (MEG_ACT_COUNT + 2)
 #define ROW_MAX    (ROW_BACK + 1)
 
 static float g_x = 80.0f;
@@ -109,9 +108,6 @@ static void draw_menu(void)
 		} else if (i == ROW_JUMP_A) {
 			snprintf(line, sizeof line, "JUMP ON A   %s",
 			         b->jump_on_a ? "ON" : "OFF");
-		} else if (i == ROW_JUMP_U) {
-			snprintf(line, sizeof line, "JUMP ON UP  %s",
-			         b->jump_on_up ? "ON" : "OFF");
 		} else if (i == ROW_RESET) {
 			snprintf(line, sizeof line, "RESET DEFAULTS");
 		} else {
@@ -165,11 +161,6 @@ static void activate_row(void)
 		g_saved_ok = meg_binds_save();
 		return;
 	}
-	if (g_row == ROW_JUMP_U) {
-		meg_binds()->jump_on_up ^= 1;
-		g_saved_ok = meg_binds_save();
-		return;
-	}
 	if (g_row == ROW_RESET) {
 		meg_binds_reset();
 		g_saved_ok = meg_binds_save();
@@ -183,7 +174,7 @@ static void tick_menu(void)
 	uint32_t got;
 
 	if (g_ui == UI_CAPTURE) {
-		if (exo_down(EXO_BTN_SELECT)) {
+		if (meg_raw_down(EXO_BTN_SELECT)) {
 			g_ui = UI_MENU;
 			return;
 		}
@@ -196,13 +187,13 @@ static void tick_menu(void)
 		return;
 	}
 
-	if (exo_down(EXO_BTN_UP) && g_row > 0)
+	if (meg_raw_down(EXO_BTN_UP) && g_row > 0)
 		g_row--;
-	if (exo_down(EXO_BTN_DOWN) && g_row < ROW_MAX - 1)
+	if (meg_raw_down(EXO_BTN_DOWN) && g_row < ROW_MAX - 1)
 		g_row++;
-	if (exo_down(EXO_BTN_A))
+	if (meg_raw_down(EXO_BTN_A))
 		activate_row();
-	if (exo_down(EXO_BTN_B) || exo_down(EXO_BTN_SELECT))
+	if (meg_raw_down(EXO_BTN_B) || meg_raw_down(EXO_BTN_SELECT))
 		g_ui = UI_PLAY;
 }
 
@@ -215,7 +206,9 @@ int main(void)
 	while (exo_frame_begin()) {
 		float dt = exo_dt();
 
-		if (g_ui == UI_PLAY && exo_down(EXO_BTN_SELECT)) {
+		meg_binds_poll();
+
+		if (g_ui == UI_PLAY && meg_raw_down(EXO_BTN_SELECT)) {
 			g_ui = UI_MENU;
 			g_paused = 1;
 		} else if (g_ui == UI_PLAY) {

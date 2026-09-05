@@ -1,21 +1,18 @@
-# Controles (como o Options do Flash)
+# Controles
 
-6 ações lógicas + pause, iguais ao original. Select abre o menu e
-**não** é remapável.
+Circle Pad e D-Pad são o **mesmo** mapa (P1). C-Stick não entra.
 
-| Ação | Default 3DS |
+6 ações + pause. Select abre o menu e não é remapável.
+
+| Ação | Default |
 |---|---|
-| LEFT / RIGHT | D-Pad + Circle Pad X |
-| JUMP | D-Pad / stick cima |
-| GUARD | D-Pad / stick baixo |
+| LEFT / RIGHT | esquerda / direita |
+| JUMP | cima |
+| GUARD | baixo |
 | LIGHT | Y |
 | HEAVY | X |
 | PAUSE | Start |
 
-Opções extra:
+**JUMP ON A** — A também pula.
 
-- **JUMP ON A** — A também pula (o Flash não tem face button)
-- **JUMP ON UP** — desligue se quiser pulo só no botão
-
-Um botão só em uma ação. Arquivo:
-`sdmc:/3ds/megaville/binds.cfg`
+Um botão só em uma ação. `sdmc:/3ds/megaville/binds.cfg`

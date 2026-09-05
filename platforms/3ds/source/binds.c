@@ -1,6 +1,5 @@
 #include "binds.h"
 
-#include <3ds.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -8,7 +7,13 @@
 #define CFG_DIR  "sdmc:/3ds/megaville"
 #define CFG_PATH "sdmc:/3ds/megaville/binds.cfg"
 
+#define STICK_X 0.40f
+#define STICK_Y 0.50f
+
 static MegBinds g;
+static uint32_t g_merged;
+static uint32_t g_merged_prev;
+static uint32_t g_merged_down;
 
 static const uint32_t BTN_ORDER[] = {
 	EXO_BTN_A, EXO_BTN_B, EXO_BTN_X, EXO_BTN_Y,
@@ -28,6 +33,23 @@ static const char *ACT_NAME[MEG_ACT_COUNT] = {
 	"LEFT", "RIGHT", "JUMP", "GUARD", "LIGHT", "HEAVY", "PAUSE"
 };
 
+static uint32_t merge_pad(void)
+{
+	const ExoInput *in = exo_input();
+	uint32_t m = in->held;
+
+	/* Circle Pad = D-Pad. P1 only; C-Stick ignored. */
+	if (in->stick_x < -STICK_X)
+		m |= EXO_BTN_LEFT;
+	if (in->stick_x > STICK_X)
+		m |= EXO_BTN_RIGHT;
+	if (in->stick_y > STICK_Y)
+		m |= EXO_BTN_UP;
+	if (in->stick_y < -STICK_Y)
+		m |= EXO_BTN_DOWN;
+	return m;
+}
+
 static void apply_jump_a(void)
 {
 	if (g.jump_on_a)
@@ -46,14 +68,20 @@ void meg_binds_reset(void)
 	g.mask[MEG_ACT_LIGHT] = EXO_BTN_Y;
 	g.mask[MEG_ACT_HEAVY] = EXO_BTN_X;
 	g.mask[MEG_ACT_PAUSE] = EXO_BTN_START;
-	g.jump_on_up    = 1;
-	g.jump_on_a     = 0;
-	g.guard_on_down = 1;
+	g.jump_on_a = 0;
+}
+
+void meg_binds_poll(void)
+{
+	g_merged_prev = g_merged;
+	g_merged = merge_pad();
+	g_merged_down = g_merged & ~g_merged_prev;
 }
 
 void meg_binds_init(void)
 {
 	meg_binds_reset();
+	g_merged = g_merged_prev = g_merged_down = 0;
 	if (!meg_binds_load())
 		meg_binds_save();
 }
@@ -95,41 +123,25 @@ void meg_mask_label(uint32_t mask, char *out, unsigned n)
 
 int meg_held(MegAct a)
 {
-	const ExoInput *in = exo_input();
-
-	if (in->held & g.mask[a])
-		return 1;
-	if (a == MEG_ACT_LEFT && in->stick_x < -0.40f)
-		return 1;
-	if (a == MEG_ACT_RIGHT && in->stick_x > 0.40f)
-		return 1;
-	if (a == MEG_ACT_JUMP && g.jump_on_up && in->stick_y > 0.50f)
-		return 1;
-	if (a == MEG_ACT_GUARD && g.guard_on_down && in->stick_y < -0.50f)
-		return 1;
-	return 0;
+	return (g_merged & g.mask[a]) != 0;
 }
 
 int meg_down(MegAct a)
 {
-	const ExoInput *in = exo_input();
+	return (g_merged_down & g.mask[a]) != 0;
+}
 
-	if (in->down & g.mask[a])
-		return 1;
-	if (a == MEG_ACT_JUMP && g.jump_on_up &&
-	    in->stick_y > 0.50f && !(in->held & EXO_BTN_UP)) {
-		/* analog edge is noisy; digital mask covers D-Pad */
-	}
-	return 0;
+int meg_raw_down(uint32_t button)
+{
+	return (g_merged_down & button) != 0;
 }
 
 uint32_t meg_capture_button(void)
 {
-	const ExoInput *in = exo_input();
 	unsigned i;
 
 	for (i = 0; i < sizeof BTN_ORDER / sizeof BTN_ORDER[0]; ++i)
-		if (in->down & BTN_ORDER[i])
+		if (g_merged_down & BTN_ORDER[i])
 			return BTN_ORDER[i];
 	return 0;
 }
@@ -173,9 +185,7 @@ int meg_binds_save(void)
 	f = fopen(CFG_PATH, "w");
 	if (!f)
 		return 0;
-	fprintf(f, "jump_on_up=%d\n", g.jump_on_up);
 	fprintf(f, "jump_on_a=%d\n", g.jump_on_a);
-	fprintf(f, "guard_on_down=%d\n", g.guard_on_down);
 	fprintf(f, "left=%u\n",  (unsigned)g.mask[MEG_ACT_LEFT]);
 	fprintf(f, "right=%u\n", (unsigned)g.mask[MEG_ACT_RIGHT]);
 	fprintf(f, "jump=%u\n",  (unsigned)g.mask[MEG_ACT_JUMP]);
@@ -198,17 +208,9 @@ int meg_binds_load(void)
 	if (!f)
 		return 0;
 	while (fscanf(f, "%31[^=]=", key) == 1) {
-		if (!strcmp(key, "jump_on_up") ||
-		    !strcmp(key, "jump_on_a") ||
-		    !strcmp(key, "guard_on_down")) {
-			if (fscanf(f, "%d", &flag) == 1) {
-				if (!strcmp(key, "jump_on_up"))
-					g.jump_on_up = flag ? 1 : 0;
-				else if (!strcmp(key, "jump_on_a"))
-					g.jump_on_a = flag ? 1 : 0;
-				else
-					g.guard_on_down = flag ? 1 : 0;
-			}
+		if (!strcmp(key, "jump_on_a")) {
+			if (fscanf(f, "%d", &flag) == 1)
+				g.jump_on_a = flag ? 1 : 0;
 		} else if (fscanf(f, "%u", &val) == 1) {
 			if (!strcmp(key, "left"))
 				g.mask[MEG_ACT_LEFT] = val;
