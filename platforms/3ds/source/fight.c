@@ -7,10 +7,7 @@
 #define GROUND 200.0f
 #define GRAVITY 900.0f
 #define WALK 140.0f
-static const float WALK_SPD[CH_COUNT] = {
-	140.0f, 135.0f, 160.0f, 145.0f,
-	120.0f, 150.0f, 125.0f, 145.0f
-};
+#define JUMP_V 280.0f
 #define JUMP_V 280.0f
 #define LEFT_WALL 8.0f
 #define RIGHT_WALL 392.0f
@@ -21,8 +18,15 @@ enum { MV_LIGHT = 0, MV_HEAVY, MV_LLL, MV_LLH, MV_LH, MV_RANGED };
 static const int STARTUP[]  = { 5, 8, 4, 5, 6, 8 };
 static const int ACTIVE[]   = { 4, 5, 5, 5, 6, 4 };
 static const int RECOVERY[] = { 10, 14, 12, 14, 16, 16 };
-static const int DAMAGE[]   = { 80, 140, 100, 160, 180, 90 };
+/* Flash _damage * BASE_DAMAGE (15): combo1=4, heavy/upper=6 */
+static const int DAMAGE[]   = { 60, 90, 60, 90, 90, 90 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
+
+/* SPRITE_RUNSPEED * 18 (Flash px/frame @ ~30fps) */
+static const float WALK_SPD[CH_COUNT] = {
+	144.0f, 162.0f, 144.0f, 144.0f,
+	126.0f, 144.0f, 144.0f, 252.0f
+};
 
 #define BASE_DAMAGE 15 /* frame_254 DEFAULT_BASE_DAMAGE */
 #define BUBBLE_MUL  3.0f
@@ -378,6 +382,23 @@ void fight_physics(Fighter *p, float dt)
 	}
 }
 
+static int apply_hp(Fighter *vic, int raw)
+{
+	int d = raw;
+
+	if (vic->ch == CH_SHIRA)
+		d *= 2;
+	else if (vic->ch == CH_ZIM)
+		d = (int)(d * 0.8f);
+	vic->hp -= d;
+	if (vic->hp < 0)
+		vic->hp = 0;
+	if (vic->hp <= 0) {
+		vic->shot_on = 0;
+	}
+	return d;
+}
+
 static void one_hit(Fighter *att, Fighter *vic)
 {
 	float hx, hy, hw, hh;
@@ -394,13 +415,13 @@ static void one_hit(Fighter *att, Fighter *vic)
 		if (vic->phase == FIGHT_GUARD) {
 			vic->x += att->face * 6.0f;
 		} else {
-			vic->hp -= DAMAGE[att->move];
-			if (vic->hp < 0)
-				vic->hp = 0;
+			apply_hp(vic, DAMAGE[att->move]);
 			vic->phase = FIGHT_HIT;
 			vic->timer = 14;
 			vic->vx = att->face * 80.0f;
 			vic->combo = 0;
+			if (vic->hp <= 0)
+				att->shot_on = 0;
 		}
 	}
 }
@@ -419,19 +440,15 @@ static void shot_hit(Fighter *att, Fighter *vic)
 		att->shot_on = 0;
 		if (vic->phase == FIGHT_GUARD) {
 			vic->x += att->face * 4.0f;
-		} else if (att->shot_kind == 1) {
-			vic->hp -= shot_dmg(att);
-			if (vic->hp < 0)
-				vic->hp = 0;
+		} else if (att->shot_kind == 1 && vic->ch != CH_ZIM) {
+			apply_hp(vic, shot_dmg(att));
 			vic->phase = FIGHT_FROZEN;
 			vic->timer = FREEZE_TIME;
 			vic->vx = 0.0f;
 			vic->vy = 0.0f;
 			vic->combo = 0;
 		} else {
-			vic->hp -= shot_dmg(att);
-			if (vic->hp < 0)
-				vic->hp = 0;
+			apply_hp(vic, shot_dmg(att));
 			vic->phase = FIGHT_HIT;
 			vic->timer = 12;
 			vic->vx = att->face * 70.0f;
