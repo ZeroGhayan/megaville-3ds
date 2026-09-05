@@ -17,6 +17,13 @@ static const int RECOVERY[] = { 10, 14, 12, 14, 16 };
 static const int DAMAGE[]   = { 8, 14, 10, 16, 18 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f };
 
+#define DASH_MAX     300
+#define DASH_COST    100
+#define DASH_FUEL    10
+#define DASH_SPEED   280.0f
+#define DASH_REGEN   30.0f /* per second; Flash +1 @ 30fps */
+#define TAP_WINDOW   12
+
 static int can_act(const Fighter *f)
 {
 	return f->phase == FIGHT_IDLE || f->phase == FIGHT_WALK ||
@@ -112,16 +119,55 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->hit_done = b->hit_done = 0;
 	a->ai = 0;
 	b->ai = 1;
-	/* ch preserved by caller */
+	a->dashes = b->dashes = DASH_MAX;
+	a->dash_acc = b->dash_acc = 0.0f;
+	a->dash_fuel = b->dash_fuel = 0;
+	a->dashed = b->dashed = 0;
+	a->tap_dir = b->tap_dir = 0;
+	a->tap_age = b->tap_age = 0;
+}
+
+static void start_dash(Fighter *p, int dir)
+{
+	if (p->dashed || p->dashes < DASH_COST)
+		return;
+	if (!can_act(p) && p->phase != FIGHT_WALK)
+		return;
+	p->face = dir;
+	p->phase = FIGHT_DASH;
+	p->dash_fuel = DASH_FUEL;
+	p->dashed = 1;
+	p->dashes -= DASH_COST;
+	p->vx = (float)dir * DASH_SPEED;
+}
+
+static void tap_dash(Fighter *p, int dir)
+{
+	if (p->tap_dir == dir && p->tap_age > 0 && p->tap_age <= TAP_WINDOW)
+		start_dash(p, dir);
+	p->tap_dir = dir;
+	p->tap_age = 1;
 }
 
 void fight_control(Fighter *p, const Fighter *opp)
 {
+	if (p->tap_age > 0 && p->tap_age < 60)
+		p->tap_age++;
+
+	if (p->phase == FIGHT_DASH)
+		return;
+
 	if (p->ai)
 		ai_tick(p, opp);
 	else {
 		p->vx = 0.0f;
 		if (can_act(p) || p->phase == FIGHT_JUMP) {
+			if (meg_down(MEG_ACT_LEFT))
+				tap_dash(p, -1);
+			if (meg_down(MEG_ACT_RIGHT))
+				tap_dash(p, 1);
+			if (p->phase == FIGHT_DASH)
+				return;
 			if (meg_held(MEG_ACT_LEFT)) {
 				p->vx = -WALK;
 				p->face = -1;
@@ -131,6 +177,8 @@ void fight_control(Fighter *p, const Fighter *opp)
 				p->face = 1;
 			}
 		}
+		if (!meg_held(MEG_ACT_LEFT) && !meg_held(MEG_ACT_RIGHT))
+			p->dashed = 0;
 		if (can_act(p) && p->grounded && meg_down(MEG_ACT_JUMP)) {
 			p->vy = -JUMP_V;
 			p->grounded = 0;
@@ -168,6 +216,23 @@ void fight_physics(Fighter *p, float dt)
 		p->x = LEFT_WALL;
 	if (p->x + p->w > RIGHT_WALL)
 		p->x = RIGHT_WALL - p->w;
+
+	if (p->dashes < DASH_MAX && p->phase != FIGHT_DASH) {
+		p->dash_acc += DASH_REGEN * dt;
+		while (p->dash_acc >= 1.0f && p->dashes < DASH_MAX) {
+			p->dashes++;
+			p->dash_acc -= 1.0f;
+		}
+	}
+
+	if (p->phase == FIGHT_DASH) {
+		p->vx = (float)p->face * DASH_SPEED;
+		p->dash_fuel--;
+		if (p->dash_fuel <= 0) {
+			p->phase = FIGHT_IDLE;
+			p->vx = 0.0f;
+		}
+	}
 
 	if (p->timer > 0)
 		p->timer--;

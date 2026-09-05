@@ -155,6 +155,15 @@ static void draw_play_hud(void)
 	             C2D_Color32(220, 196, 72, 255));
 	exo_bot_rect(8, 48, (float)g_p2.hp * 1.4f, 10,
 	             C2D_Color32(180, 90, 160, 255));
+	{
+		int i;
+		for (i = 0; i < 3; ++i) {
+			u32 c = g_p1.dashes >= (i + 1) * 100
+			            ? C2D_Color32(80, 200, 255, 255)
+			            : C2D_Color32(40, 50, 60, 255);
+			exo_bot_rect(8.0f + (float)i * 22.0f, 64, 18, 8, c);
+		}
+	}
 	exo_text(8, 72, 0.45f, C2D_Color32(200, 220, 255, 255),
 	         g_intro > 0 ? "GET READY" : (g_paused ? "PAUSED" : "LLL  LLH  LH"));
 	exo_text(8, 210, 0.4f, C2D_Color32(120, 120, 140, 255),

@@ -9,7 +9,8 @@ typedef enum {
 	FIGHT_STARTUP,
 	FIGHT_ACTIVE,
 	FIGHT_RECOVERY,
-	FIGHT_HIT
+	FIGHT_HIT,
+	FIGHT_DASH
 } FightPhase;
 
 typedef struct {
@@ -24,7 +25,13 @@ typedef struct {
 	int move;  /* 0 light 1 heavy 2 lll 3 llh 4 lh */
 	int hit_done;
 	int ai;
-	int ch; /* 0 blossom 1 bubbles 2 buttercup */
+	int ch;
+	int dashes;
+	float dash_acc;
+	int dash_fuel;
+	int dashed;     /* already dashed this tap */
+	int tap_dir;    /* last tap -1/0/+1 */
+	int tap_age;
 } Fighter;
 
 void fight_reset(Fighter *a, Fighter *b);
