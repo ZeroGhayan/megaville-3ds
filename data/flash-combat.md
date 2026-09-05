@@ -5,7 +5,20 @@
 - P1 `(100, 204)` `_xscale = -100` (olha direita)
 - P2 `(300, 204)` `_xscale = 100` (olha esquerda)
 - `_wait = true` + clip `readyfight` (nosso 3-2-1)
-- `_hp = MAX_HP` (número ainda não lido; barra usa `hp/5` e `hp/10`)
+## Números (`1479`)
+
+```
+MAX_DIFFICULTY = 10
+MAX_HP = 1000
+MIN_HP = -710
+AI_BASE_ERROR = 10
+NAME_BLOSSOM = 0
+```
+
+Estados: IDLE=1 RUN=2 DASH=3 CHARGE=4 COMBO1–3=5–7 UPPER=8 RANGED=9
+DOWNATK=10 SHIELD=15 DAMAGE=17 HIT=18 FALLEN=19 RECOVER=20
+COMBO2B=22 COMBO3B=23 FROZEN=24 AIRRANGED=14/25
+
 
 ## Input (`2266`)
 

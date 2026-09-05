@@ -151,9 +151,9 @@ static void draw_play_hud(void)
 	exo_text_begin();
 	snprintf(buf, sizeof buf, "P1 %d   CPU %d", g_p1.hp, g_p2.hp);
 	exo_text(8, 8, 0.5f, C2D_Color32(255, 255, 255, 255), buf);
-	exo_bot_rect(8, 32, (float)g_p1.hp * 1.4f, 10,
+	exo_bot_rect(8, 32, (float)g_p1.hp * 0.14f, 10,
 	             C2D_Color32(220, 196, 72, 255));
-	exo_bot_rect(8, 48, (float)g_p2.hp * 1.4f, 10,
+	exo_bot_rect(8, 48, (float)g_p2.hp * 0.14f, 10,
 	             C2D_Color32(180, 90, 160, 255));
 	{
 		int i;

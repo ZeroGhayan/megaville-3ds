@@ -14,7 +14,7 @@ enum { MV_LIGHT = 0, MV_HEAVY, MV_LLL, MV_LLH, MV_LH };
 static const int STARTUP[]  = { 5, 8, 4, 5, 6 };
 static const int ACTIVE[]   = { 4, 5, 5, 5, 6 };
 static const int RECOVERY[] = { 10, 14, 12, 14, 16 };
-static const int DAMAGE[]   = { 8, 14, 10, 16, 18 };
+static const int DAMAGE[]   = { 80, 140, 100, 160, 180 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f };
 
 #define DASH_MAX     300
@@ -113,7 +113,7 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->grounded = b->grounded = 1;
 	a->phase = b->phase = FIGHT_IDLE;
 	a->timer = b->timer = 0;
-	a->hp = b->hp = 100;
+	a->hp = b->hp = 1000;
 	a->combo = b->combo = 0;
 	a->move = b->move = 0;
 	a->hit_done = b->hit_done = 0;
