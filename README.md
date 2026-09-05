@@ -6,8 +6,16 @@ Homebrew **não oficial** para New Nintendo 3DS inspirado no lutador Flash
 Título no menu HOME: **Battle in Megaville 3D**
 (o “3D” é o console; estereoscopia vem depois do jogo 2D fechar).
 
-Motor de referência: [ZeroGhayan/exo-verse](https://github.com/ZeroGhayan/exo-verse)
-(`engine/` + `platforms/3ds/`).
+Camada de plataforma copiada de
+[ZeroGhayan/exo-verse](https://github.com/ZeroGhayan/exo-verse)
+(`engine/` + input/render 3DS).
+
+## Status
+
+Hello 3DS: duas telas, caixa móvel no pad, Y/X/Start no HUD.
+Ainda não é o lutador.
+
+Build local: [`docs/BUILD_VSCODIUM.md`](docs/BUILD_VSCODIUM.md).
 
 ## O que este repo commita
 
@@ -16,9 +24,8 @@ Motor de referência: [ZeroGhayan/exo-verse](https://github.com/ZeroGhayan/exo-v
 
 ## O que **não** vai para o GitHub
 
-SWF original, dump JPEXS, sprites extraídos, OST da Capcom
-(*Mega Man X5 — X vs. Zero*). Isso fica em pastas ignoradas — ver
-[`docs/PRIVATE_ASSETS.md`](docs/PRIVATE_ASSETS.md).
+SWF original, dump JPEXS, sprites extraídos, OST da Capcom.
+Ver [`docs/PRIVATE_ASSETS.md`](docs/PRIVATE_ASSETS.md).
 
 ## Mapa de input (Fase 0)
 
@@ -31,15 +38,7 @@ SWF original, dump JPEXS, sprites extraídos, OST da Capcom
 | Combos (todos iguais) | Y,Y,Y · Y,Y,X · Y,X |
 | Player 2 | CPU no mesmo struct de input |
 
-## Build (na sua máquina com devkitPro)
-
 ```bash
 cd platforms/3ds
 make
 ```
-
-Gera `.3dsx` para Homebrew Launcher / Lime3DS.
-
-## Status
-
-Fase 0 travada. Próximo: hello 3DS (duas telas + pad) e extração local do SWF.
