@@ -112,6 +112,7 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->hit_done = b->hit_done = 0;
 	a->ai = 0;
 	b->ai = 1;
+	/* ch preserved by caller */
 }
 
 void fight_control(Fighter *p, const Fighter *opp)

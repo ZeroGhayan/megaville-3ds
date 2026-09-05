@@ -1,11 +1,11 @@
 --atlas -f rgba8888 -z auto
-idle.png
-land.png
-jump.png
-walk.png
-dash.png
-heavy.png
-light.png
-light2.png
-hit.png
-ko.png
+blossom/idle.png
+blossom/land.png
+blossom/jump.png
+blossom/walk.png
+blossom/dash.png
+blossom/heavy.png
+blossom/light.png
+blossom/light2.png
+blossom/hit.png
+blossom/ko.png

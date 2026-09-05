@@ -1,6 +1,7 @@
 #include "sprites.h"
 
 #include <citro2d.h>
+#include <stdio.h>
 
 enum {
 	SPR_IDLE = 0,
@@ -16,34 +17,60 @@ enum {
 	SPR_COUNT
 };
 
-static C2D_SpriteSheet g_sheet;
-static C2D_Image g_img[SPR_COUNT];
-static int g_ok;
+#define NCHAR 3
+
+static const char *SHEET_PATH[NCHAR] = {
+	"romfs:/gfx/blossom.t3x",
+	"romfs:/gfx/bubbles.t3x",
+	"romfs:/gfx/buttercup.t3x"
+};
+
+static C2D_SpriteSheet g_sheet[NCHAR];
+static C2D_Image g_img[NCHAR][SPR_COUNT];
+static int g_ok[NCHAR];
+static int g_any;
 
 int meg_sprites_init(void)
 {
-	int i;
+	int c, i;
 
-	g_sheet = C2D_SpriteSheetLoad("romfs:/gfx/blossom.t3x");
-	if (!g_sheet)
-		return 0;
-	for (i = 0; i < SPR_COUNT; ++i)
-		g_img[i] = C2D_SpriteSheetGetImage(g_sheet, i);
-	g_ok = 1;
-	return 1;
+	g_any = 0;
+	for (c = 0; c < NCHAR; ++c) {
+		g_sheet[c] = C2D_SpriteSheetLoad(SHEET_PATH[c]);
+		g_ok[c] = 0;
+		if (!g_sheet[c])
+			continue;
+		for (i = 0; i < SPR_COUNT; ++i)
+			g_img[c][i] = C2D_SpriteSheetGetImage(g_sheet[c], i);
+		g_ok[c] = 1;
+		g_any = 1;
+	}
+	return g_any;
 }
 
 void meg_sprites_fini(void)
 {
-	if (g_sheet)
-		C2D_SpriteSheetFree(g_sheet);
-	g_sheet = NULL;
-	g_ok = 0;
+	int c;
+
+	for (c = 0; c < NCHAR; ++c) {
+		if (g_sheet[c])
+			C2D_SpriteSheetFree(g_sheet[c]);
+		g_sheet[c] = NULL;
+		g_ok[c] = 0;
+	}
+	g_any = 0;
 }
 
 int meg_sprites_ok(void)
 {
-	return g_ok;
+	return g_any;
+}
+
+int meg_sprites_ok_ch(int ch)
+{
+	if (ch < 0 || ch >= NCHAR)
+		return 0;
+	return g_ok[ch];
 }
 
 static int pick(const Fighter *f)
@@ -69,21 +96,49 @@ static int pick(const Fighter *f)
 	return SPR_IDLE;
 }
 
+static int clamp_ch(int ch)
+{
+	if (ch < 0 || ch >= NCHAR || !g_ok[ch])
+		return g_ok[0] ? 0 : (g_ok[1] ? 1 : 2);
+	return ch;
+}
+
 void meg_draw_fighter(const Fighter *f, float parallax)
 {
 	C2D_Image img;
 	float w, h, x, y, sx;
+	int ch;
 
-	if (!g_ok)
+	if (!g_any)
 		return;
-	img = g_img[pick(f)];
+	ch = clamp_ch(f->ch);
+	if (!g_ok[ch])
+		return;
+	img = g_img[ch][pick(f)];
+	if (!img.subtex)
+		return;
 	w = img.subtex->width;
 	h = img.subtex->height;
-	/* arte nativa olha para a ESQUERDA; face +1 = direita = flip */
 	sx = f->face >= 0 ? -1.0f : 1.0f;
 	x = f->x + parallax + (f->w - w) * 0.5f;
 	y = f->y + f->h - h;
 	if (sx < 0.0f)
 		x += w;
 	C2D_DrawImageAt(img, x, y, 0.5f, NULL, sx, 1.0f);
+}
+
+void meg_draw_idle(int ch, float x, float y, float scale)
+{
+	C2D_Image img;
+	float w, h;
+
+	ch = clamp_ch(ch);
+	if (!g_ok[ch])
+		return;
+	img = g_img[ch][SPR_IDLE];
+	if (!img.subtex)
+		return;
+	w = img.subtex->width * scale;
+	h = img.subtex->height * scale;
+	C2D_DrawImageAt(img, x - w * 0.5f, y - h, 0.5f, NULL, -scale, scale);
 }

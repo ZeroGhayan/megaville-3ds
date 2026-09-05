@@ -1,0 +1,11 @@
+--atlas -f rgba8888 -z auto
+buttercup/idle.png
+buttercup/land.png
+buttercup/jump.png
+buttercup/walk.png
+buttercup/dash.png
+buttercup/heavy.png
+buttercup/light.png
+buttercup/light2.png
+buttercup/hit.png
+buttercup/ko.png

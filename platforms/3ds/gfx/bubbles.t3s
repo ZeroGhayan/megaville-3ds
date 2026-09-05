@@ -1,0 +1,11 @@
+--atlas -f rgba8888 -z auto
+bubbles/idle.png
+bubbles/land.png
+bubbles/jump.png
+bubbles/walk.png
+bubbles/dash.png
+bubbles/heavy.png
+bubbles/light.png
+bubbles/light2.png
+bubbles/hit.png
+bubbles/ko.png

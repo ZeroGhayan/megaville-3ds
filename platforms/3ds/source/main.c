@@ -10,7 +10,8 @@
 #define INTRO_LEN 240
 
 enum {
-	UI_PLAY = 0,
+	UI_SELECT = 0,
+	UI_PLAY,
 	UI_MENU,
 	UI_CAPTURE
 };
@@ -23,14 +24,24 @@ enum {
 
 static Fighter g_p1, g_p2;
 static int g_paused;
-static int g_ui = UI_PLAY;
+static int g_ui = UI_SELECT;
 static int g_row;
 static int g_saved_ok = 1;
 static int g_intro = INTRO_LEN;
+static int g_pick = 0;
+
+static const char *CHAR_NAME[3] = { "BLOSSOM", "BUBBLES", "BUTTERCUP" };
+
+static void apply_chars(void)
+{
+	g_p1.ch = g_pick;
+	g_p2.ch = (g_pick + 1) % 3;
+}
 
 static void round_reset(void)
 {
 	fight_reset(&g_p1, &g_p2);
+	apply_chars();
 	g_intro = INTRO_LEN;
 	g_paused = 0;
 }
@@ -75,11 +86,16 @@ static void draw_eye(ExoEye eye)
 	px = exo_parallax(4.0f, eye);
 	C2D_DrawRectSolid(0.0f + px, GROUND_Y, 0.4f, 400.0f, 40.0f,
 	                  C2D_Color32(46, 72, 58, 255));
-	draw_fighter(&g_p1, eye);
-	draw_fighter(&g_p2, eye);
+	if (g_ui != UI_SELECT) {
+		draw_fighter(&g_p1, eye);
+		draw_fighter(&g_p2, eye);
+	}
 	exo_top_text(200.0f, 8.0f, 0.50f, C2D_Color32(240, 240, 240, 255),
 	             "BATTLE IN MEGAVILLE 3D");
-	if (g_intro > 180)
+	if (g_ui == UI_SELECT)
+		exo_top_text(200.0f, 100.0f, 0.7f, C2D_Color32(255, 220, 80, 255),
+		             "SELECT");
+	else if (g_intro > 180)
 		exo_top_text(200.0f, 100.0f, 1.4f, C2D_Color32(255, 220, 80, 255), "3");
 	else if (g_intro > 120)
 		exo_top_text(200.0f, 100.0f, 1.4f, C2D_Color32(255, 220, 80, 255), "2");
@@ -90,6 +106,41 @@ static void draw_eye(ExoEye eye)
 	else
 		exo_top_text(200.0f, 26.0f, 0.38f, C2D_Color32(180, 200, 220, 255),
 		             "Y light  X heavy  SELECT binds");
+}
+
+static void draw_select(void)
+{
+	int i;
+	u32 col;
+
+	exo_render_bottom(C2D_Color32(16, 16, 28, 255));
+	exo_text_begin();
+	exo_text(8, 8, 0.5f, C2D_Color32(255, 255, 255, 255), "CHOOSE FIGHTER");
+	for (i = 0; i < 3; ++i) {
+		col = (i == g_pick) ? C2D_Color32(255, 220, 90, 255)
+		                    : C2D_Color32(160, 170, 180, 255);
+		exo_text(16.0f + (float)i * 100.0f, 40, 0.42f, col, CHAR_NAME[i]);
+		if (meg_sprites_ok_ch(i))
+			meg_draw_idle(i, 48.0f + (float)i * 100.0f, 150.0f, 1.4f);
+		else
+			exo_bot_rect(24.0f + (float)i * 100.0f, 100, 40, 50,
+			             i == g_pick ? C2D_Color32(220, 196, 72, 255)
+			                         : C2D_Color32(80, 80, 90, 255));
+	}
+	exo_text(8, 210, 0.4f, C2D_Color32(120, 120, 140, 255),
+	         "LEFT/RIGHT  A fight");
+}
+
+static void tick_select(void)
+{
+	if (meg_raw_down(EXO_BTN_LEFT) && g_pick > 0)
+		g_pick--;
+	if (meg_raw_down(EXO_BTN_RIGHT) && g_pick < 2)
+		g_pick++;
+	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
+		round_reset();
+		g_ui = UI_PLAY;
+	}
 }
 
 static void draw_play_hud(void)
@@ -107,7 +158,9 @@ static void draw_play_hud(void)
 	exo_text(8, 72, 0.45f, C2D_Color32(200, 220, 255, 255),
 	         g_intro > 0 ? "GET READY" : (g_paused ? "PAUSED" : "LLL  LLH  LH"));
 	exo_text(8, 210, 0.4f, C2D_Color32(120, 120, 140, 255),
-	         "SELECT options   HOME exit");
+	         (g_p1.hp <= 0 || g_p2.hp <= 0)
+	             ? "Y rematch  B roster"
+	             : "SELECT options   HOME exit");
 }
 
 static void draw_menu(void)
@@ -157,6 +210,8 @@ static void tick_play(float dt)
 	if (g_p1.hp <= 0 || g_p2.hp <= 0) {
 		if (meg_down(MEG_ACT_LIGHT) || meg_down(MEG_ACT_HEAVY))
 			round_reset();
+		if (meg_raw_down(EXO_BTN_B))
+			g_ui = UI_SELECT;
 		return;
 	}
 	fight_control(&g_p1, &g_p2);
@@ -226,7 +281,9 @@ int main(void)
 
 		meg_binds_poll();
 
-		if (g_ui == UI_PLAY && meg_raw_down(EXO_BTN_SELECT)) {
+		if (g_ui == UI_SELECT) {
+			tick_select();
+		} else if (g_ui == UI_PLAY && meg_raw_down(EXO_BTN_SELECT)) {
 			g_ui = UI_MENU;
 			g_paused = 1;
 		} else if (g_ui == UI_PLAY) {
@@ -238,7 +295,9 @@ int main(void)
 		exo_render_begin();
 		draw_eye(EXO_EYE_LEFT);
 		draw_eye(EXO_EYE_RIGHT);
-		if (g_ui == UI_PLAY)
+		if (g_ui == UI_SELECT)
+			draw_select();
+		else if (g_ui == UI_PLAY)
 			draw_play_hud();
 		else
 			draw_menu();

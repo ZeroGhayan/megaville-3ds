@@ -118,16 +118,17 @@ endif
 
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
-SLICE_DIR	:=	$(TOPDIR)/../../assets/private/sliced/blossom
+SLICE_ROOT	:=	$(TOPDIR)/../../assets/private/sliced
 
 all:
 	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS) $(CURDIR)/gfx
-	@if [ -f $(SLICE_DIR)/idle.png ]; then \
-		cp -f $(SLICE_DIR)/*.png $(CURDIR)/gfx/; \
-		echo "sliced gfx staged"; \
-	else \
-		echo "no sliced pngs — boxes only"; \
-	fi
+	@for c in blossom bubbles buttercup; do \
+		if [ -f $(SLICE_ROOT)/$$c/idle.png ]; then \
+			mkdir -p $(CURDIR)/gfx/$$c; \
+			cp -f $(SLICE_ROOT)/$$c/*.png $(CURDIR)/gfx/$$c/; \
+			echo "staged $$c"; \
+		fi; \
+	done
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------
