@@ -2,19 +2,15 @@
 #include "exo/render.h"
 #include "binds.h"
 #include "roster.h"
+#include "menu.h"
+#include "game.h"
+#include "sprites.h"
 
 #include <citro2d.h>
 #include <stdio.h>
 
 #define GROUND_Y 200.0f
 #define INTRO_LEN 240
-
-enum {
-	UI_SELECT = 0,
-	UI_PLAY,
-	UI_MENU,
-	UI_CAPTURE
-};
 
 #define ROW_ACTN   MEG_ACT_COUNT
 #define ROW_JUMP_A MEG_ACT_COUNT
@@ -24,11 +20,11 @@ enum {
 
 static Fighter g_p1, g_p2;
 static int g_paused;
-static int g_ui = UI_SELECT;
 static int g_row;
 static int g_saved_ok = 1;
 static int g_intro = INTRO_LEN;
 static int g_pick = 0;
+static int g_binds_ingame;
 
 static void apply_chars(void)
 {
@@ -100,22 +96,29 @@ static void draw_fighter(const Fighter *f, ExoEye eye)
 static void draw_eye(ExoEye eye)
 {
 	float px;
+	int scr = meg_screen();
+
+	if (scr != SCR_PLAY && scr != SCR_SELECT &&
+	    scr != SCR_BINDS && scr != SCR_CAPTURE) {
+		exo_render_eye(eye, C2D_Color32(18, 8, 28, 255));
+		meg_menu_draw_top();
+		return;
+	}
 
 	exo_render_eye(eye, C2D_Color32(28, 36, 56, 255));
 	px = exo_parallax(4.0f, eye);
 	C2D_DrawRectSolid(0.0f + px, GROUND_Y, 0.4f, 400.0f, 40.0f,
 	                  C2D_Color32(46, 72, 58, 255));
-	if (g_ui != UI_SELECT) {
+	if (scr == SCR_PLAY) {
 		draw_fighter(&g_p1, eye);
 		draw_fighter(&g_p2, eye);
 		draw_shot(&g_p1, px);
-		draw_shot(&g_p2, px);
 	}
 	exo_top_text(200.0f, 8.0f, 0.50f, C2D_Color32(240, 240, 240, 255),
 	             "BATTLE IN MEGAVILLE 3D");
-	if (g_ui == UI_SELECT)
+	if (meg_screen() == SCR_SELECT)
 		exo_top_text(200.0f, 100.0f, 0.7f, C2D_Color32(255, 220, 80, 255),
-		             "SELECT");
+		             meg_mode_name(meg_game()->mode));
 	else if (g_intro > 180)
 		exo_top_text(200.0f, 100.0f, 1.4f, C2D_Color32(255, 220, 80, 255), "3");
 	else if (g_intro > 120)
@@ -153,7 +156,7 @@ static void draw_select(void)
 			meg_draw_idle(i, x + 36.0f, y + 72.0f, 1.0f);
 	}
 	exo_text(8, 214, 0.38f, C2D_Color32(120, 120, 140, 255),
-	         "PAD move   A fight");
+	         "PAD move   A fight   B menu");
 }
 
 static void tick_select(void)
@@ -166,9 +169,11 @@ static void tick_select(void)
 		g_pick -= SEL_COLS;
 	if (meg_raw_down(EXO_BTN_DOWN) && g_pick + SEL_COLS < CH_COUNT)
 		g_pick += SEL_COLS;
+	if (meg_raw_down(EXO_BTN_B))
+		meg_set_screen(SCR_MAIN);
 	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
 		round_reset();
-		g_ui = UI_PLAY;
+		meg_set_screen(SCR_PLAY);
 	}
 }
 
@@ -178,7 +183,9 @@ static void draw_play_hud(void)
 
 	exo_render_bottom(C2D_Color32(16, 16, 24, 255));
 	exo_text_begin();
-	snprintf(buf, sizeof buf, "P1 %d   CPU %d", g_p1.hp, g_p2.hp);
+	snprintf(buf, sizeof buf, "%s d%d  P1 %d  CPU %d",
+	         meg_mode_name(meg_game()->mode), meg_game()->difficulty,
+	         g_p1.hp, g_p2.hp);
 	exo_text(8, 8, 0.5f, C2D_Color32(255, 255, 255, 255), buf);
 	exo_bot_rect(8, 32, (float)g_p1.hp * 0.14f, 10,
 	             C2D_Color32(220, 196, 72, 255));
@@ -212,7 +219,7 @@ static void draw_menu(void)
 	exo_render_bottom(C2D_Color32(12, 14, 22, 255));
 	exo_text_begin();
 	exo_text(8, 4, 0.45f, C2D_Color32(255, 255, 255, 255),
-	         g_ui == UI_CAPTURE ? "PRESS A BUTTON" : "CONTROLS");
+	         meg_screen() == SCR_CAPTURE ? "PRESS A BUTTON" : "CONTROLS");
 
 	for (i = 0; i < ROW_MAX; ++i) {
 		int y = 22 + i * 16;
@@ -249,7 +256,7 @@ static void tick_play(float dt)
 		if (meg_down(MEG_ACT_LIGHT) || meg_down(MEG_ACT_HEAVY))
 			round_reset();
 		if (meg_raw_down(EXO_BTN_B))
-			g_ui = UI_SELECT;
+			meg_set_screen(SCR_SELECT);
 		return;
 	}
 	fight_control(&g_p1, &g_p2);
@@ -262,7 +269,7 @@ static void tick_play(float dt)
 static void activate_row(void)
 {
 	if (g_row < ROW_ACTN) {
-		g_ui = UI_CAPTURE;
+		meg_set_screen(SCR_CAPTURE);
 		return;
 	}
 	if (g_row == ROW_JUMP_A) {
@@ -275,7 +282,7 @@ static void activate_row(void)
 		g_saved_ok = meg_binds_save();
 		return;
 	}
-	g_ui = UI_PLAY;
+	meg_set_screen(g_binds_ingame ? SCR_PLAY : SCR_OPTIONS);
 	if (g_intro > 0)
 		g_paused = 0;
 }
@@ -284,16 +291,16 @@ static void tick_menu(void)
 {
 	uint32_t got;
 
-	if (g_ui == UI_CAPTURE) {
+	if (meg_screen() == SCR_CAPTURE) {
 		if (meg_raw_down(EXO_BTN_SELECT)) {
-			g_ui = UI_MENU;
+			meg_set_screen(SCR_BINDS);
 			return;
 		}
 		got = meg_capture_button();
 		if (got && got != EXO_BTN_SELECT) {
 			meg_set_bind((MegAct)g_row, got);
 			g_saved_ok = meg_binds_save();
-			g_ui = UI_MENU;
+			meg_set_screen(SCR_BINDS);
 		}
 		return;
 	}
@@ -305,7 +312,7 @@ static void tick_menu(void)
 	if (meg_raw_down(EXO_BTN_A))
 		activate_row();
 	if (meg_raw_down(EXO_BTN_B) || meg_raw_down(EXO_BTN_SELECT)) {
-		g_ui = UI_PLAY;
+		meg_set_screen(g_binds_ingame ? SCR_PLAY : SCR_OPTIONS);
 		if (g_intro > 0)
 			g_paused = 0;
 	}
@@ -313,38 +320,50 @@ static void tick_menu(void)
 
 int main(void)
 {
+	int scr;
+
 	if (!exo_init())
 		return 1;
 	meg_binds_init();
+	meg_game_init();
 	round_reset();
 	meg_sprites_init();
+	meg_set_screen(SCR_TITLE);
 
 	while (exo_frame_begin()) {
 		float dt = exo_dt();
 
 		meg_binds_poll();
+		scr = meg_screen();
 
-		if (g_ui == UI_SELECT) {
+		if (scr == SCR_SELECT) {
 			tick_select();
-		} else if (g_ui == UI_PLAY && meg_raw_down(EXO_BTN_SELECT) &&
+		} else if (scr == SCR_PLAY && meg_raw_down(EXO_BTN_SELECT) &&
 		           g_intro <= 0) {
-			g_ui = UI_MENU;
+			g_binds_ingame = 1;
+			meg_set_screen(SCR_BINDS);
 			g_paused = 1;
-		} else if (g_ui == UI_PLAY) {
+		} else if (scr == SCR_PLAY) {
 			tick_play(dt);
-		} else {
+		} else if (scr == SCR_BINDS || scr == SCR_CAPTURE) {
 			tick_menu();
+		} else {
+			g_binds_ingame = 0;
+			meg_menu_tick();
 		}
 
 		exo_render_begin();
 		draw_eye(EXO_EYE_LEFT);
 		draw_eye(EXO_EYE_RIGHT);
-		if (g_ui == UI_SELECT)
+		scr = meg_screen();
+		if (scr == SCR_SELECT)
 			draw_select();
-		else if (g_ui == UI_PLAY)
+		else if (scr == SCR_PLAY)
 			draw_play_hud();
-		else
+		else if (scr == SCR_BINDS || scr == SCR_CAPTURE)
 			draw_menu();
+		else
+			meg_menu_draw_bot();
 		exo_render_end();
 		exo_frame_end();
 	}
