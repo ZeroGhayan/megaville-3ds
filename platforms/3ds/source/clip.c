@@ -1,7 +1,6 @@
 #include "clip.h"
 #include "clip_table.h"
 #include "roster.h"
-#include "sprites.h"
 
 #include <citro2d.h>
 #include <stdio.h>
@@ -43,7 +42,7 @@ typedef struct {
 
 static const DexClip DEX_CLIP[] = { DEX_CLIP_DATA };
 
-#define MAX_SHEETS 96
+#define MAX_SHEETS 192
 
 static C2D_SpriteSheet g_sh[MAX_SHEETS];
 static int g_key[MAX_SHEETS];
@@ -83,9 +82,9 @@ static int phase_to_clip(const Fighter *f)
 	}
 }
 
-static int sheet_key(int id, int sheet)
+static int sheet_key(int id, int sheet, int twin)
 {
-	return id * 256 + sheet;
+	return (twin ? 0x8000 : 0) | (id * 256 + sheet);
 }
 
 static C2D_SpriteSheet find_sheet(int key)
@@ -98,17 +97,22 @@ static C2D_SpriteSheet find_sheet(int key)
 	return NULL;
 }
 
-static void load_one(int id, int sheet)
+static void load_one(int id, int sheet, int twin)
 {
 	char path[80];
 	int key;
 
 	if (g_nsh >= MAX_SHEETS)
 		return;
-	key = sheet_key(id, sheet);
+	key = sheet_key(id, sheet, twin);
 	if (find_sheet(key))
 		return;
-	snprintf(path, sizeof path, "%s_%d.t3x", DEX_CLIP[id].prefix, sheet);
+	if (twin)
+		snprintf(path, sizeof path, "%s_t_%d.t3x",
+		         DEX_CLIP[id].prefix, sheet);
+	else
+		snprintf(path, sizeof path, "%s_%d.t3x",
+		         DEX_CLIP[id].prefix, sheet);
 	g_sh[g_nsh] = C2D_SpriteSheetLoad(path);
 	if (!g_sh[g_nsh])
 		return;
@@ -130,8 +134,10 @@ int meg_clip_init(void)
 		chunk = DEX_CLIP[id].chunk;
 		if (n <= 0 || chunk < 1)
 			continue;
-		for (s = 0; s < (n + chunk - 1) / chunk; ++s)
-			load_one(id, s);
+		for (s = 0; s < (n + chunk - 1) / chunk; ++s) {
+			load_one(id, s, 0);
+			load_one(id, s, 1);
+		}
 	}
 	g_ok = g_nsh > 0;
 	return g_ok;
@@ -184,8 +190,7 @@ void meg_clip_draw(const Fighter *f, float parallax)
 {
 	C2D_SpriteSheet sh;
 	C2D_Image img;
-	C2D_ImageTint tint;
-	float w, x, y, sx, rx, ry;
+	float x, y, sx, rx, ry;
 	int id, fr, n, chunk, local, idx, ox, oy;
 
 	id = f->clip_id;
@@ -201,13 +206,14 @@ void meg_clip_draw(const Fighter *f, float parallax)
 	if (chunk < 1)
 		chunk = 1;
 	local = fr % chunk;
-	sh = find_sheet(sheet_key(id, fr / chunk));
+	sh = find_sheet(sheet_key(id, fr / chunk, f->twin));
+	if (!sh)
+		sh = find_sheet(sheet_key(id, fr / chunk, 0));
 	if (!sh)
 		return;
 	img = C2D_SpriteSheetGetImage(sh, local);
 	if (!img.subtex)
 		return;
-	w = img.subtex->width;
 	idx = DEX_OFF_BASE[id] + fr;
 	ox = DEX_OX[idx];
 	oy = DEX_OY[idx];
@@ -219,13 +225,7 @@ void meg_clip_draw(const Fighter *f, float parallax)
 	else
 		x = rx + (float)ox;
 	y = ry - (float)oy;
-	if (f->twin) {
-		meg_tint_twin(&tint);
-		C2D_DrawImageAt(img, x, y, 0.5f, &tint, sx, 1.0f);
-	} else {
-		C2D_DrawImageAt(img, x, y, 0.5f, NULL, sx, 1.0f);
-	}
-	(void)w;
+	C2D_DrawImageAt(img, x, y, 0.5f, NULL, sx, 1.0f);
 }
 
 #else

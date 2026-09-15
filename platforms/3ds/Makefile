@@ -131,6 +131,7 @@ all:
 		fi; \
 	done
 	@if [ -d $(PIC_ROOT) ]; then python3 $(TOPDIR)/../../tools/pack_pics.py; fi
+	@python3 $(TOPDIR)/../../tools/pack_sliced_twin.py
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------

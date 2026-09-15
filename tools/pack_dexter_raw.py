@@ -18,6 +18,9 @@ except ImportError:
     sys.stderr.write("precisa: pip3 install --user Pillow\n")
     sys.exit(1)
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from flash_twin import twin_mul, core_feet
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DUMP_CAND = [
     os.path.join(ROOT, "assets", "raw", "dump", "sprites", "DefineSprite_1236_Dexter"),
@@ -136,7 +139,8 @@ def main():
     if args.report_only:
         return 0
 
-    # origem Flash: um ponto fixo no canvas. idle frame 1, pés = fundo do bbox.
+    # origem Flash: (0,0) do clip. Sem PlaceObject no dump AS, usamos
+    # os pes do nucleo opaco do idle (alpha>=200), nao a sombra.
     p0 = frame_path(dump, 1)
     im0 = Image.open(p0).convert("RGBA") if p0 else None
     uniq = set(sizes)
@@ -144,12 +148,10 @@ def main():
     shared = len(uniq) <= 1 and im0 is not None
     sox = soy = 0
     if shared:
-        bb = bbox(im0)
-        sox = (bb[0] + bb[2]) // 2
-        soy = bb[3]
-        print("origem partilhada (pes idle):", sox, soy, "canvas", im0.size)
+        sox, soy = core_feet(im0)
+        print("origem partilhada (nucleo idle):", sox, soy, "canvas", im0.size)
     else:
-        print("AVISO: canvas varia — pés por frame (perde motion baked)")
+        print("AVISO: canvas varia — pes por frame")
 
     os.makedirs(GFX, exist_ok=True)
     rows = []
@@ -157,9 +159,13 @@ def main():
     all_oy = []
     for name, a, b in RANGES:
         folder = os.path.join(GFX, "dex_" + name)
+        tfolder = os.path.join(GFX, "dex_" + name + "_t")
         if os.path.isdir(folder):
             shutil.rmtree(folder)
+        if os.path.isdir(tfolder):
+            shutil.rmtree(tfolder)
         os.makedirs(folder)
+        os.makedirs(tfolder)
         count = 0
         maxw = maxh = 1
         for n in range(a, b + 1):
@@ -182,14 +188,16 @@ def main():
                 ox = sox - l
                 oy = soy - t
             else:
-                ox = trim.size[0] // 2
-                oy = trim.size[1]
+                fx, fy = core_feet(im)
+                ox = fx - l
+                oy = fy - t
             trim, _did = fit_gpu(trim)
             if _did:
                 s = min(MAX_GPU / float(r - l), MAX_GPU / float(bot - t))
                 ox = int(ox * s)
                 oy = int(oy * s)
             trim.save(os.path.join(folder, "%04d.png" % count))
+            twin_mul(trim).save(os.path.join(tfolder, "%04d.png" % count))
             all_ox.append(ox)
             all_oy.append(oy)
             if trim.size[0] > maxw:
@@ -207,13 +215,18 @@ def main():
         nsheet = (count + chunk - 1) // chunk
         for s in range(nsheet):
             t3s = os.path.join(GFX, "dex_%s_%d.t3s" % (name, s))
+            t3st = os.path.join(GFX, "dex_%s_t_%d.t3s" % (name, s))
             lines = ["--atlas -f rgba8888 -z auto"]
+            linest = ["--atlas -f rgba8888 -z auto"]
             lo = s * chunk
             hi = min(count, lo + chunk)
             for i in range(lo, hi):
                 lines.append("dex_%s/%04d.png" % (name, i))
+                linest.append("dex_%s_t/%04d.png" % (name, i))
             with open(t3s, "w") as fh:
                 fh.write("\n".join(lines) + "\n")
+            with open(t3st, "w") as fh:
+                fh.write("\n".join(linest) + "\n")
         loop = -1 if name in ONESHOT else (count - 1 if name in (
             "fallen", "win", "shield", "extra") else 0)
         rows.append((name, count, loop, chunk))

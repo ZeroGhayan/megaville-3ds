@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Copia assets/private/pics/ → gfx/pic.t3s (ordem CH_*)."""
+"""Copia assets/private/pics/ → gfx/pic.t3s (0-7 normal, 8-15 twin Flash)."""
 from __future__ import print_function
 import os
-import shutil
 import sys
 
 try:
@@ -10,6 +9,9 @@ try:
 except ImportError:
     sys.stderr.write("precisa Pillow\n")
     sys.exit(1)
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from flash_twin import twin_mul
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SRC = os.path.join(ROOT, "assets", "private", "pics")
@@ -36,6 +38,7 @@ def main():
     os.makedirs(os.path.join(GFX, "pic"), exist_ok=True)
     lines = ["--atlas -f rgba8888 -z auto"]
     n = 0
+    imgs = []
     for i, name in enumerate(NAMES):
         p = find(name)
         out = os.path.join(GFX, "pic", "%d.png" % i)
@@ -51,10 +54,15 @@ def main():
             im = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
             im.save(out)
             print("pic", name, "FALTA")
+        imgs.append(im)
         lines.append("pic/%d.png" % i)
+    for i, im in enumerate(imgs):
+        tw = twin_mul(im)
+        tw.save(os.path.join(GFX, "pic", "%d.png" % (i + 8)))
+        lines.append("pic/%d.png" % (i + 8))
     with open(os.path.join(GFX, "pic.t3s"), "w") as f:
         f.write("\n".join(lines) + "\n")
-    print("ok", n, "/ 8")
+    print("ok", n, "/ 8 + twin")
     return 0 if n else 1
 
 

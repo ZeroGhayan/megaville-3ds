@@ -29,11 +29,26 @@ static const char *SHEET_PATH[CH_COUNT] = {
 	"romfs:/gfx/shira.t3x"
 };
 
+static const char *SHEET_TWIN[CH_COUNT] = {
+	"romfs:/gfx/blossom_t.t3x",
+	"romfs:/gfx/bubbles_t.t3x",
+	"romfs:/gfx/buttercup_t.t3x",
+	"romfs:/gfx/bell_t.t3x",
+	"romfs:/gfx/dexter_t.t3x",
+	"romfs:/gfx/rowdy_t.t3x",
+	"romfs:/gfx/zim_t.t3x",
+	"romfs:/gfx/shira_t.t3x"
+};
+
 static C2D_SpriteSheet g_sheet[CH_COUNT];
+static C2D_SpriteSheet g_sheet_t[CH_COUNT];
 static C2D_Image g_img[CH_COUNT][SPR_COUNT];
+static C2D_Image g_img_t[CH_COUNT][SPR_COUNT];
 static C2D_SpriteSheet g_pic;
 static C2D_Image g_picimg[CH_COUNT];
+static C2D_Image g_pictwin[CH_COUNT];
 static int g_ok[CH_COUNT];
+static int g_ok_t[CH_COUNT];
 static int g_any;
 static int g_picok;
 
@@ -47,20 +62,32 @@ int meg_sprites_init(void)
 
 	g_any = 0;
 	for (c = 0; c < CH_COUNT; ++c) {
-		g_sheet[c] = C2D_SpriteSheetLoad(SHEET_PATH[c]);
+		g_sheet[c] = NULL;
+		g_sheet_t[c] = NULL;
 		g_ok[c] = 0;
+		g_ok_t[c] = 0;
+		g_sheet[c] = C2D_SpriteSheetLoad(SHEET_PATH[c]);
 		if (!g_sheet[c])
 			continue;
 		for (i = 0; i < SPR_COUNT; ++i)
 			g_img[c][i] = C2D_SpriteSheetGetImage(g_sheet[c], i);
 		g_ok[c] = 1;
 		g_any = 1;
+		g_sheet_t[c] = C2D_SpriteSheetLoad(SHEET_TWIN[c]);
+		g_ok_t[c] = 0;
+		if (g_sheet_t[c]) {
+			for (i = 0; i < SPR_COUNT; ++i)
+				g_img_t[c][i] = C2D_SpriteSheetGetImage(g_sheet_t[c], i);
+			g_ok_t[c] = 1;
+		}
 	}
 	g_pic = C2D_SpriteSheetLoad("romfs:/gfx/pic.t3x");
 	g_picok = 0;
 	if (g_pic) {
-		for (c = 0; c < CH_COUNT; ++c)
+		for (c = 0; c < CH_COUNT; ++c) {
 			g_picimg[c] = C2D_SpriteSheetGetImage(g_pic, c);
+			g_pictwin[c] = C2D_SpriteSheetGetImage(g_pic, c + CH_COUNT);
+		}
 		g_picok = 1;
 	}
 	return g_any;
@@ -73,8 +100,12 @@ void meg_sprites_fini(void)
 	for (c = 0; c < CH_COUNT; ++c) {
 		if (g_sheet[c])
 			C2D_SpriteSheetFree(g_sheet[c]);
+		if (g_sheet_t[c])
+			C2D_SpriteSheetFree(g_sheet_t[c]);
 		g_sheet[c] = NULL;
+		g_sheet_t[c] = NULL;
 		g_ok[c] = 0;
+		g_ok_t[c] = 0;
 	}
 	g_any = 0;
 	if (g_pic)
@@ -97,8 +128,7 @@ int meg_sprites_ok_ch(int ch)
 
 void meg_tint_twin(C2D_ImageTint *t)
 {
-	/* Flash twinClrTrans: ra=20 ga=75 ba=100  (multiply) */
-	C2D_PlainImageTint(t, C2D_Color32(51, 191, 255, 255), 1.0f);
+	(void)t;
 }
 
 static int pick(const Fighter *f)
@@ -152,7 +182,10 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 	ch = clamp_ch(f->ch);
 	if (!g_ok[ch])
 		return;
-	img = g_img[ch][pick(f)];
+	if (f->twin && g_ok_t[ch] && g_img_t[ch][pick(f)].subtex)
+		img = g_img_t[ch][pick(f)];
+	else
+		img = g_img[ch][pick(f)];
 	if (!img.subtex)
 		return;
 	w = img.subtex->width;
@@ -162,14 +195,7 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 	y = f->y + f->h - h + g_offy[ch];
 	if (sx < 0.0f)
 		x += w;
-	if (f->twin) {
-		C2D_ImageTint tint;
-
-		meg_tint_twin(&tint);
-		C2D_DrawImageAt(img, x, y, 0.5f, &tint, sx, 1.0f);
-	} else {
-		C2D_DrawImageAt(img, x, y, 0.5f, NULL, sx, 1.0f);
-	}
+	C2D_DrawImageAt(img, x, y, 0.5f, NULL, sx, 1.0f);
 }
 
 void meg_draw_idle(int ch, float x, float y, float scale)
@@ -180,13 +206,15 @@ void meg_draw_idle(int ch, float x, float y, float scale)
 void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin)
 {
 	C2D_Image img;
-	C2D_ImageTint it;
 	float w, h, sx;
 
 	ch = clamp_ch(ch);
-	if (g_picok && g_picimg[ch].subtex)
-		img = g_picimg[ch];
-	else {
+	if (g_picok) {
+		if (twin && g_pictwin[ch].subtex)
+			img = g_pictwin[ch];
+		else
+			img = g_picimg[ch];
+	} else {
 		if (!g_ok[ch])
 			return;
 		img = g_img[ch][SPR_IDLE];
@@ -199,11 +227,6 @@ void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin)
 	x -= w * 0.5f;
 	if (sx < 0.0f)
 		x += w;
-	if (twin) {
-		meg_tint_twin(&it);
-		C2D_DrawImageAt(img, x, y - h, 0.5f, &it, sx, scale);
-	} else {
-		C2D_DrawImageAt(img, x, y - h, 0.5f, NULL, sx, scale);
-	}
+	C2D_DrawImageAt(img, x, y - h, 0.5f, NULL, sx, scale);
 }
 

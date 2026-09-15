@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Gera gfx/<char>_t.t3s com multiply Flash a partir dos PNG sliced."""
+from __future__ import print_function
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from flash_twin import twin_mul
+
+try:
+    from PIL import Image
+except ImportError:
+    sys.exit(0)
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+GFX = os.path.join(ROOT, "platforms", "3ds", "gfx")
+SKIP = ("pic.t3s",)
+
+
+def main():
+    if not os.path.isdir(GFX):
+        return 0
+    for fn in os.listdir(GFX):
+        if not fn.endswith(".t3s"):
+            continue
+        if fn in SKIP or fn.startswith("dex_") or fn.endswith("_t.t3s"):
+            continue
+        path = os.path.join(GFX, fn)
+        lines = open(path).read().splitlines()
+        pngs = [l.strip() for l in lines if l.strip().endswith(".png")]
+        if not pngs:
+            continue
+        name = fn[:-4]
+        outdir = os.path.join(GFX, name + "_t")
+        os.makedirs(outdir, exist_ok=True)
+        out = ["--atlas -f rgba8888 -z auto"]
+        for i, rel in enumerate(pngs):
+            src = os.path.join(GFX, rel)
+            if not os.path.isfile(src):
+                continue
+            im = twin_mul(Image.open(src))
+            dst = os.path.join(outdir, "%02d.png" % i)
+            im.save(dst)
+            out.append("%s_t/%02d.png" % (name, i))
+        t3s = os.path.join(GFX, name + "_t.t3s")
+        with open(t3s, "w") as f:
+            f.write("\n".join(out) + "\n")
+        print("twin", t3s)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
