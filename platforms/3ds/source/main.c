@@ -69,9 +69,8 @@ static void draw_vs_top(void)
 	             CH_NAME[g_p2.ch]);
 	C2D_DrawRectSolid(20.0f, 42.0f, 0.2f, 360.0f, 168.0f,
 	                  C2D_Color32(8, 18, 80, 255));
-	meg_draw_pic(g_p1.ch, 110.0f, 200.0f, 2.6f, 1, 0);
-	meg_draw_pic(g_p2.ch, 290.0f, 200.0f, 2.6f, -1,
-	             g_p2.twin ? C2D_Color32(80, 200, 255, 255) : 0);
+	meg_draw_pic(g_p1.ch, 110.0f, 200.0f, 1.0f, 1, 0);
+	meg_draw_pic(g_p2.ch, 290.0f, 200.0f, 1.0f, -1, g_p2.twin);
 	exo_top_text(200.0f, 100.0f, 1.1f, C2D_Color32(255, 255, 255, 255), "VS");
 }
 
@@ -80,15 +79,14 @@ static void draw_continue_top(void)
 	char n[4];
 
 	if (g_cont_n < 0) {
-		meg_draw_pic(g_p1.ch, 110.0f, 210.0f, 2.8f, 1,
-		             C2D_Color32(40, 255, 90, 255));
+		meg_draw_pic(g_p1.ch, 110.0f, 210.0f, 1.0f, 1, 1);
 		exo_top_text(250.0f, 100.0f, 0.7f, C2D_Color32(255, 255, 255, 255),
 		             "GAME OVER");
 		return;
 	}
 	exo_top_text(200.0f, 8.0f, 0.65f, C2D_Color32(255, 255, 255, 255),
 	             "CONTINUE?");
-	meg_draw_pic(g_p1.ch, 110.0f, 210.0f, 2.8f, 1, 0);
+	meg_draw_pic(g_p1.ch, 110.0f, 210.0f, 1.0f, 1, 0);
 	snprintf(n, sizeof n, "%d", g_cont_n);
 	exo_top_text(270.0f, 90.0f, 1.6f, C2D_Color32(255, 255, 255, 255), n);
 }

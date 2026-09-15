@@ -13,6 +13,8 @@ platforms/3ds/romfs/
 platforms/3ds/gfx/**/*.png
 platforms/3ds/gfx/dex_*.t3s
 platforms/3ds/gfx/dex_*/
+platforms/3ds/gfx/pic/
+platforms/3ds/gfx/pic.t3s
 romfs/gfx/
 
 # --- private / third-party IP (keep on disk, never push) ---

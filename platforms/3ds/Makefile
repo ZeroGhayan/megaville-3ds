@@ -119,6 +119,7 @@ endif
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 SLICE_ROOT	:=	$(TOPDIR)/../../assets/private/sliced
+PIC_ROOT	:=	$(TOPDIR)/../../assets/private/pics
 
 all:
 	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS) $(CURDIR)/gfx
@@ -129,6 +130,7 @@ all:
 			echo "staged $$c"; \
 		fi; \
 	done
+	@if [ -d $(PIC_ROOT) ]; then python3 $(TOPDIR)/../../tools/pack_pics.py; fi
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------

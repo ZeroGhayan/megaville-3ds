@@ -31,8 +31,11 @@ static const char *SHEET_PATH[CH_COUNT] = {
 
 static C2D_SpriteSheet g_sheet[CH_COUNT];
 static C2D_Image g_img[CH_COUNT][SPR_COUNT];
+static C2D_SpriteSheet g_pic;
+static C2D_Image g_picimg[CH_COUNT];
 static int g_ok[CH_COUNT];
 static int g_any;
+static int g_picok;
 
 /* ajuste fino depois do crop manual */
 static float g_offx[CH_COUNT];
@@ -53,6 +56,13 @@ int meg_sprites_init(void)
 		g_ok[c] = 1;
 		g_any = 1;
 	}
+	g_pic = C2D_SpriteSheetLoad("romfs:/gfx/pic.t3x");
+	g_picok = 0;
+	if (g_pic) {
+		for (c = 0; c < CH_COUNT; ++c)
+			g_picimg[c] = C2D_SpriteSheetGetImage(g_pic, c);
+		g_picok = 1;
+	}
 	return g_any;
 }
 
@@ -67,6 +77,10 @@ void meg_sprites_fini(void)
 		g_ok[c] = 0;
 	}
 	g_any = 0;
+	if (g_pic)
+		C2D_SpriteSheetFree(g_pic);
+	g_pic = NULL;
+	g_picok = 0;
 }
 
 int meg_sprites_ok(void)
@@ -79,6 +93,12 @@ int meg_sprites_ok_ch(int ch)
 	if (ch < 0 || ch >= CH_COUNT)
 		return 0;
 	return g_ok[ch];
+}
+
+void meg_tint_twin(C2D_ImageTint *t)
+{
+	/* Flash twinClrTrans: ra=20 ga=75 ba=100  (multiply) */
+	C2D_PlainImageTint(t, C2D_Color32(51, 191, 255, 255), 1.0f);
 }
 
 static int pick(const Fighter *f)
@@ -145,7 +165,7 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 	if (f->twin) {
 		C2D_ImageTint tint;
 
-		C2D_PlainImageTint(&tint, C2D_Color32(80, 200, 255, 255), 0.55f);
+		meg_tint_twin(&tint);
 		C2D_DrawImageAt(img, x, y, 0.5f, &tint, sx, 1.0f);
 	} else {
 		C2D_DrawImageAt(img, x, y, 0.5f, NULL, sx, 1.0f);
@@ -157,17 +177,20 @@ void meg_draw_idle(int ch, float x, float y, float scale)
 	meg_draw_pic(ch, x, y, scale, 1, 0);
 }
 
-void meg_draw_pic(int ch, float x, float y, float scale, int face,
-                  uint32_t tint)
+void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin)
 {
 	C2D_Image img;
 	C2D_ImageTint it;
 	float w, h, sx;
 
 	ch = clamp_ch(ch);
-	if (!g_ok[ch])
-		return;
-	img = g_img[ch][SPR_IDLE];
+	if (g_picok && g_picimg[ch].subtex)
+		img = g_picimg[ch];
+	else {
+		if (!g_ok[ch])
+			return;
+		img = g_img[ch][SPR_IDLE];
+	}
 	if (!img.subtex)
 		return;
 	w = img.subtex->width * scale;
@@ -176,8 +199,8 @@ void meg_draw_pic(int ch, float x, float y, float scale, int face,
 	x -= w * 0.5f;
 	if (sx < 0.0f)
 		x += w;
-	if (tint) {
-		C2D_PlainImageTint(&it, tint, 0.65f);
+	if (twin) {
+		meg_tint_twin(&it);
 		C2D_DrawImageAt(img, x, y - h, 0.5f, &it, sx, scale);
 	} else {
 		C2D_DrawImageAt(img, x, y - h, 0.5f, NULL, sx, scale);

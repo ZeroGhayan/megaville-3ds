@@ -25,6 +25,7 @@ DUMP_CAND = [
 ]
 GFX = os.path.join(ROOT, "platforms", "3ds", "gfx")
 HDR = os.path.join(ROOT, "platforms", "3ds", "source", "clip_table.h")
+OFF = os.path.join(ROOT, "platforms", "3ds", "source", "clip_off.h")
 MAX_GPU = 1024
 
 RANGES = [
@@ -77,6 +78,14 @@ def fit_gpu(im):
     return im.resize((nw, nh), Image.NEAREST), True
 
 
+def bbox(im):
+    a = im.split()[-1]
+    b = a.getbbox()
+    if not b:
+        return (0, 0, im.size[0], im.size[1])
+    return b
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--report-only", action="store_true")
@@ -127,8 +136,25 @@ def main():
     if args.report_only:
         return 0
 
+    # origem Flash: um ponto fixo no canvas. idle frame 1, pés = fundo do bbox.
+    p0 = frame_path(dump, 1)
+    im0 = Image.open(p0).convert("RGBA") if p0 else None
+    uniq = set(sizes)
+    print("tamanhos unicos:", uniq)
+    shared = len(uniq) <= 1 and im0 is not None
+    sox = soy = 0
+    if shared:
+        bb = bbox(im0)
+        sox = (bb[0] + bb[2]) // 2
+        soy = bb[3]
+        print("origem partilhada (pes idle):", sox, soy, "canvas", im0.size)
+    else:
+        print("AVISO: canvas varia — pés por frame (perde motion baked)")
+
     os.makedirs(GFX, exist_ok=True)
     rows = []
+    all_ox = []
+    all_oy = []
     for name, a, b in RANGES:
         folder = os.path.join(GFX, "dex_" + name)
         if os.path.isdir(folder):
@@ -141,22 +167,43 @@ def main():
             if not p:
                 continue
             im = Image.open(p).convert("RGBA")
-            im, _did = fit_gpu(im)
-            im.save(os.path.join(folder, "%04d.png" % count))
-            if im.size[0] > maxw:
-                maxw = im.size[0]
-            if im.size[1] > maxh:
-                maxh = im.size[1]
+            bb = bbox(im)
+            l, t, r, bot = bb
+            if l > 0:
+                l -= 1
+            if t > 0:
+                t -= 1
+            if r < im.size[0]:
+                r += 1
+            if bot < im.size[1]:
+                bot += 1
+            trim = im.crop((l, t, r, bot))
+            if shared:
+                ox = sox - l
+                oy = soy - t
+            else:
+                ox = trim.size[0] // 2
+                oy = trim.size[1]
+            trim, _did = fit_gpu(trim)
+            if _did:
+                s = min(MAX_GPU / float(r - l), MAX_GPU / float(bot - t))
+                ox = int(ox * s)
+                oy = int(oy * s)
+            trim.save(os.path.join(folder, "%04d.png" % count))
+            all_ox.append(ox)
+            all_oy.append(oy)
+            if trim.size[0] > maxw:
+                maxw = trim.size[0]
+            if trim.size[1] > maxh:
+                maxh = trim.size[1]
             count += 1
         if count == 0:
             print("skip", name)
             rows.append((name, 0, -1, 1))
             continue
-        cols = max(1, MAX_GPU // maxw)
-        rows_fit = max(1, MAX_GPU // maxh)
-        chunk = max(1, min(count, cols * rows_fit))
-        if chunk > 16:
-            chunk = 16
+        cols = max(1, MAX_GPU // max(1, maxw))
+        rows_fit = max(1, MAX_GPU // max(1, maxh))
+        chunk = max(1, min(count, cols * rows_fit, 16))
         nsheet = (count + chunk - 1) // chunk
         for s in range(nsheet):
             t3s = os.path.join(GFX, "dex_%s_%d.t3s" % (name, s))
@@ -170,7 +217,8 @@ def main():
         loop = -1 if name in ONESHOT else (count - 1 if name in (
             "fallen", "win", "shield", "extra") else 0)
         rows.append((name, count, loop, chunk))
-        print("folha", name, count, "frames  chunk", chunk, "sheets", nsheet)
+        print("folha", name, count, "frames  %dx%d  chunk %d  sheets %d" % (
+            maxw, maxh, chunk, nsheet))
 
     with open(HDR, "w") as fh:
         fh.write("/* gerado por tools/pack_dexter_raw.py */\n")
@@ -183,7 +231,23 @@ def main():
             fh.write('  { "%s", %d, %d, %d },%s\n' % (
                 pref, count, loop, chunk, comma))
         fh.write("#endif\n")
+    with open(OFF, "w") as fh:
+        fh.write("/* gerado: ox,oy = ponto de registo Flash no recorte */\n")
+        fh.write("static const int16_t DEX_OX[] = {\n")
+        for i, v in enumerate(all_ox):
+            fh.write("%d,%s" % (v, "\n" if i % 16 == 15 else ""))
+        fh.write("\n};\nstatic const int16_t DEX_OY[] = {\n")
+        for i, v in enumerate(all_oy):
+            fh.write("%d,%s" % (v, "\n" if i % 16 == 15 else ""))
+        fh.write("\n};\n")
+        base = 0
+        fh.write("static const int DEX_OFF_BASE[] = {")
+        for i, (name, count, loop, chunk) in enumerate(rows):
+            fh.write("%d," % base)
+            base += count
+        fh.write("};\n")
     print("header", HDR)
+    print("off", OFF, "n", len(all_ox))
     print("ok — cd platforms/3ds && make")
     return 0
 

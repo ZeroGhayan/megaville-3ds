@@ -1,12 +1,16 @@
 #include "clip.h"
 #include "clip_table.h"
 #include "roster.h"
+#include "sprites.h"
 
 #include <citro2d.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 #if MEG_DEX_CLIP
+#include "clip_off.h"
 
 enum {
 	DEX_IDLE = 0,
@@ -30,8 +34,6 @@ enum {
 	DEX_CLIP_N
 };
 
-#define CACHE 4
-
 typedef struct {
 	const char *prefix;
 	int count;
@@ -41,10 +43,11 @@ typedef struct {
 
 static const DexClip DEX_CLIP[] = { DEX_CLIP_DATA };
 
-static C2D_SpriteSheet g_sh[CACHE];
-static int g_id[CACHE];
-static int g_age[CACHE];
-static int g_tick;
+#define MAX_SHEETS 96
+
+static C2D_SpriteSheet g_sh[MAX_SHEETS];
+static int g_key[MAX_SHEETS];
+static int g_nsh;
 static int g_ok;
 
 static int phase_to_clip(const Fighter *f)
@@ -80,55 +83,57 @@ static int phase_to_clip(const Fighter *f)
 	}
 }
 
-static C2D_SpriteSheet load_clip(int id, int fr)
+static int sheet_key(int id, int sheet)
 {
-	char path[64];
-	int i, worst, wage, chunk, sheet;
+	return id * 256 + sheet;
+}
 
-	if (id < 0 || id >= DEX_CLIP_N)
-		id = 0;
-	if (id >= (int)(sizeof DEX_CLIP / sizeof DEX_CLIP[0]))
-		id = 0;
-	chunk = DEX_CLIP[id].chunk;
-	if (chunk < 1)
-		chunk = 1;
-	sheet = fr / chunk;
-	snprintf(path, sizeof path, "%s_%d.t3x", DEX_CLIP[id].prefix, sheet);
-	for (i = 0; i < CACHE; ++i) {
-		if (g_id[i] == id * 256 + sheet && g_sh[i]) {
-			g_age[i] = ++g_tick;
+static C2D_SpriteSheet find_sheet(int key)
+{
+	int i;
+
+	for (i = 0; i < g_nsh; ++i)
+		if (g_key[i] == key)
 			return g_sh[i];
-		}
-	}
-	worst = 0;
-	wage = g_age[0];
-	for (i = 1; i < CACHE; ++i) {
-		if (g_age[i] < wage) {
-			wage = g_age[i];
-			worst = i;
-		}
-	}
-	if (g_sh[worst])
-		C2D_SpriteSheetFree(g_sh[worst]);
-	g_sh[worst] = C2D_SpriteSheetLoad(path);
-	g_id[worst] = id * 256 + sheet;
-	g_age[worst] = ++g_tick;
-	return g_sh[worst];
+	return NULL;
+}
+
+static void load_one(int id, int sheet)
+{
+	char path[80];
+	int key;
+
+	if (g_nsh >= MAX_SHEETS)
+		return;
+	key = sheet_key(id, sheet);
+	if (find_sheet(key))
+		return;
+	snprintf(path, sizeof path, "%s_%d.t3x", DEX_CLIP[id].prefix, sheet);
+	g_sh[g_nsh] = C2D_SpriteSheetLoad(path);
+	if (!g_sh[g_nsh])
+		return;
+	g_key[g_nsh] = key;
+	g_nsh++;
 }
 
 int meg_clip_init(void)
 {
-	int i;
+	int id, s, n, chunk, last;
 
 	g_ok = 0;
-	g_tick = 1;
-	for (i = 0; i < CACHE; ++i) {
-		g_sh[i] = NULL;
-		g_id[i] = -1;
-		g_age[i] = 0;
+	g_nsh = 0;
+	last = DEX_DAMAGE; /* extra/win nao no preload */
+	if (last >= (int)(sizeof DEX_CLIP / sizeof DEX_CLIP[0]))
+		last = (int)(sizeof DEX_CLIP / sizeof DEX_CLIP[0]) - 1;
+	for (id = 0; id <= last; ++id) {
+		n = DEX_CLIP[id].count;
+		chunk = DEX_CLIP[id].chunk;
+		if (n <= 0 || chunk < 1)
+			continue;
+		for (s = 0; s < (n + chunk - 1) / chunk; ++s)
+			load_one(id, s);
 	}
-	if (load_clip(DEX_IDLE, 0))
-		g_ok = 1;
+	g_ok = g_nsh > 0;
 	return g_ok;
 }
 
@@ -136,12 +141,12 @@ void meg_clip_fini(void)
 {
 	int i;
 
-	for (i = 0; i < CACHE; ++i) {
+	for (i = 0; i < g_nsh; ++i) {
 		if (g_sh[i])
 			C2D_SpriteSheetFree(g_sh[i]);
 		g_sh[i] = NULL;
-		g_id[i] = -1;
 	}
+	g_nsh = 0;
 	g_ok = 0;
 }
 
@@ -166,17 +171,13 @@ void meg_clip_tick(Fighter *f, float dt)
 	if (n <= 0)
 		return;
 	f->clip_t += dt;
-	while (f->clip_t >= 0.04f) {
-		f->clip_t -= 0.04f;
-		f->clip_f++;
-		loop = DEX_CLIP[id].loop;
-		if (f->clip_f >= n) {
-			if (loop < 0)
-				f->clip_f = n - 1;
-			else
-				f->clip_f = loop;
-		}
-	}
+	if (f->clip_t < 0.04f)
+		return;
+	f->clip_t = 0.0f;
+	f->clip_f++;
+	loop = DEX_CLIP[id].loop;
+	if (f->clip_f >= n)
+		f->clip_f = (loop < 0) ? (n - 1) : loop;
 }
 
 void meg_clip_draw(const Fighter *f, float parallax)
@@ -184,8 +185,8 @@ void meg_clip_draw(const Fighter *f, float parallax)
 	C2D_SpriteSheet sh;
 	C2D_Image img;
 	C2D_ImageTint tint;
-	float w, h, x, y, sx;
-	int id, fr, n, chunk, local;
+	float w, x, y, sx, rx, ry;
+	int id, fr, n, chunk, local, idx, ox, oy;
 
 	id = f->clip_id;
 	if (id < 0 || id >= DEX_CLIP_N)
@@ -200,25 +201,31 @@ void meg_clip_draw(const Fighter *f, float parallax)
 	if (chunk < 1)
 		chunk = 1;
 	local = fr % chunk;
-	sh = load_clip(id, fr);
+	sh = find_sheet(sheet_key(id, fr / chunk));
 	if (!sh)
 		return;
 	img = C2D_SpriteSheetGetImage(sh, local);
 	if (!img.subtex)
 		return;
 	w = img.subtex->width;
-	h = img.subtex->height;
+	idx = DEX_OFF_BASE[id] + fr;
+	ox = DEX_OX[idx];
+	oy = DEX_OY[idx];
+	rx = f->x + f->w * 0.5f + parallax;
+	ry = f->y + f->h;
 	sx = f->face >= 0 ? -1.0f : 1.0f;
-	x = f->x + parallax + (f->w - w) * 0.5f;
-	y = f->y + f->h - h;
-	if (sx < 0.0f)
-		x += w;
+	if (sx >= 0.0f)
+		x = rx - (float)ox;
+	else
+		x = rx + (float)ox;
+	y = ry - (float)oy;
 	if (f->twin) {
-		C2D_PlainImageTint(&tint, C2D_Color32(80, 200, 255, 255), 0.55f);
+		meg_tint_twin(&tint);
 		C2D_DrawImageAt(img, x, y, 0.5f, &tint, sx, 1.0f);
 	} else {
 		C2D_DrawImageAt(img, x, y, 0.5f, NULL, sx, 1.0f);
 	}
+	(void)w;
 }
 
 #else

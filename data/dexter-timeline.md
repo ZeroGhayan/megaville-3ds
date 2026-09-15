@@ -1,49 +1,36 @@
-# Dexter — clip `DefineSprite_1236_Dexter` (646 PNG, **sem crop**)
+# Dexter — clip `DefineSprite_1236_Dexter` (646 PNG)
 
-Labels do combate (`gotoAndPlay("…")`) × flags no próprio clip.
-Arte nativa olha à **esquerda**. `face +1` = flip.
+Lutador = **só este clip**. À parte: `738_projectile`, `751_combo`, `759_hit`.
+IDs 1254–1320 são pedaços **dentro** do 1236 (já nas PNG se o JPEXS flatten).
 
-Flash 25 fps. 3DS avança 1 frame de clip a cada 0.04 s.
+Arte olha à **esquerda**. Flash: `_x/_y` = pés (registo), `_xscale ±100` vira nesse ponto.
+Palco 400 px = 3DS 1:1. Hitbox 20×36.
 
-## Onde cada frame vai
+| Label | PNG | Uso |
+|---|---:|---|
+| idle | 1–48 | parado |
+| land | 50–57 | aterrar |
+| jump | 62–69 | pulo |
+| forward | 71–84 | correr |
+| dash | 86–97 | dash |
+| shield | 98 | guarda |
+| combo1 | 99–117 | Y (108 hit) |
+| combo2 | 118–130 | YY |
+| combo3 | 131–151 | YYY / ar |
+| ranged | 152–198 | special chão |
+| air | 199–222 | 2.º hit ar |
+| downatk | 223–250 | X ar |
+| fall / fallen / recover | 251–278 | queda / KO / levantar |
+| win | 283–295 | vitória |
+| damage | 319–394 | hitstun |
+| extra | 395–625 | resto (não preload) |
 
-| Label 3DS | PNG (dump) | Loop / fim | Flags | Uso |
-|---|---:|---|---|---|
-| **idle** | **1–48** | 49 → 1 | | parado |
-| **land** | **50–57** | 58, 61 → 50 | | aterragem / poeira |
-| **jump** | **62–69** | 70 → 62 | | pulo (e queda se não houver fall) |
-| **forward** | **71–84** | 85 → 71 | | corrida |
-| **dash** | **86–97** | 98 `stop` | | dash |
-| **shield** | **98** | stop | | guarda (1 frame, segura) |
-| **combo1** | **99–117** | 117 → idle | 108 `_weakHit` 113 `_comboDone` | Y |
-| **combo2** | **118–130** | 130 → idle | 121 `_weakHit` 126 `_comboDone` | Y Y |
-| **combo3** | **131–151** | 151 → idle | | Y Y Y / Y X / ar (`combo3`) |
-| **ranged** | **152–198** | 198 → idle | 164 `_stateChange` 169 `_weakHit` 171–186 `_hitDone` × | special chão (raio) |
-| **air** | **199–222** | 222 → idle | 203–210 `_stateChange` 210 `_hitDone` | air ranged / 2.º hit |
-| **downatk** | **223–250** | 250 → **jump** | | X no ar |
-| **fall** | **251–257** | 257 `stop` | `_stateDone` | queda |
-| **fallen** | **258–267** | 267 → 266 | | KO no chão |
-| **recover** | **268–278** | 278 → idle | | levantar |
-| **win** | **283–295** | 295 → 283 | 329 também → 283 | vitória |
-| **damage** | **319** fim→idle; **330–394** | 394 → idle | | hitstun (confirmar no PNG) |
-| **extra** | **395–540** `stop` + **541–625** loop 624 | | | não deitar fora — clip extra / intro |
+Packer recorta **só transparente** e guarda (ox,oy) dos pés no canvas do idle — motion baked mantém-se se o canvas for o mesmo tamanho.
 
-Não há `teleport` / `frozen` / `upper` com label própria neste clip: double-jump reusa **jump**; freeze reusa **damage**; Dexter não tem upper.
-
-## Copiar (sem editar)
-
-No repo:
+Twin Flash: `ra=20 ga=75 ba=100` (multiply), **não** overlay ciano. Game Over usa o mesmo.
 
 ```
-mkdir -p assets/private/dexter_raw/src
-cp assets/raw/dump/sprites/DefineSprite_1236_Dexter/*.png \
-   assets/private/dexter_raw/src/
 python3 tools/pack_dexter_raw.py
+python3 tools/pack_pics.py
 cd platforms/3ds && make
 ```
-
-O packer **não corta**. Se algum PNG for >1024 px (limite da GPU), só *escala* para caber — não é crop. Relatório no terminal: tamanho médio, nº de folhas, VRAM estimada.
-
-## Teste hardware
-
-Story / Versus, **Dexter vs Dexter** (luta 1 do Story do Dexter já é mirror). Dois clips do mesmo atlas. Se gaguejar: o canvas original é o problema, não a lógica.
