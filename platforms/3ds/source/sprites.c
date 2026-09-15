@@ -3,6 +3,7 @@
 #include "clip.h"
 
 #include <citro2d.h>
+#include <string.h>
 
 enum {
 	SPR_IDLE = 0,
@@ -208,13 +209,16 @@ void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin)
 	C2D_Image img;
 	float w, h, sx;
 
-	ch = clamp_ch(ch);
+	if (ch < 0 || ch >= CH_COUNT)
+		return;
+	memset(&img, 0, sizeof img);
 	if (g_picok) {
 		if (twin && g_pictwin[ch].subtex)
 			img = g_pictwin[ch];
 		else
 			img = g_picimg[ch];
-	} else {
+	}
+	if (!img.subtex) {
 		if (!g_ok[ch])
 			return;
 		img = g_img[ch][SPR_IDLE];

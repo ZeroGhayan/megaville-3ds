@@ -114,14 +114,16 @@ ifneq ($(ROMFS),)
 	export _3DSXFLAGS += --romfs=$(CURDIR)/$(ROMFS)
 endif
 
-.PHONY: all clean
+.PHONY: all clean gfx_stage build_inner
 
-#---------------------------------------------------------------------------------
-#---------------------------------------------------------------------------------
 SLICE_ROOT	:=	$(TOPDIR)/../../assets/private/sliced
 PIC_ROOT	:=	$(TOPDIR)/../../assets/private/pics
 
-all:
+# gfx_stage gera .t3s; a 2.ª invocação volta a fazer o wildcard.
+all: gfx_stage
+	@$(MAKE) --no-print-directory build_inner
+
+gfx_stage:
 	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS) $(CURDIR)/gfx
 	@for c in blossom bubbles buttercup bell shira dexter zim rowdy; do \
 		if [ -f $(SLICE_ROOT)/$$c/idle.png ]; then \
@@ -130,8 +132,11 @@ all:
 			echo "staged $$c"; \
 		fi; \
 	done
-	@if [ -d $(PIC_ROOT) ]; then python3 $(TOPDIR)/../../tools/pack_pics.py; fi
+	@python3 $(TOPDIR)/../../tools/pack_pics.py || echo "pack_pics: sem pics"
 	@python3 $(TOPDIR)/../../tools/pack_sliced_twin.py
+
+build_inner:
+	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------
