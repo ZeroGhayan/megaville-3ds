@@ -37,6 +37,7 @@ typedef struct {
 	int shot_hit;
 	int shot_kind; /* 1 freeze  2 bubble  3 butch */
 	float shot_x, shot_y, shot_vx;
+	int twin; /* Flash same-name tint */
 } Fighter;
 
 int fight_is_blossom(const Fighter *f);

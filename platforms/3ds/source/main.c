@@ -28,8 +28,17 @@ static int g_binds_ingame;
 
 static void apply_chars(void)
 {
-	g_p1.ch = g_pick;
-	g_p2.ch = (g_pick + 1) % CH_COUNT;
+	MegGame *g = meg_game();
+
+	if (g->mode == MODE_STORY) {
+		g_p1.ch = g->story_p1;
+		g_p2.ch = meg_story_cpu(g->story_p1, g->story_level);
+	} else {
+		g_p1.ch = g_pick;
+		g_p2.ch = (g_pick + 1) % CH_COUNT;
+	}
+	g_p1.twin = 0;
+	g_p2.twin = (g_p1.ch == g_p2.ch);
 }
 
 static void round_reset(void)
@@ -156,7 +165,9 @@ static void draw_select(void)
 			meg_draw_idle(i, x + 36.0f, y + 72.0f, 1.0f);
 	}
 	exo_text(8, 214, 0.38f, C2D_Color32(120, 120, 140, 255),
-	         "PAD move   A fight   B menu");
+	         meg_game()->mode == MODE_STORY
+	             ? "A start   B menu   (Zim n/a)"
+	             : "PAD move   A fight   B menu");
 }
 
 static void tick_select(void)
@@ -169,12 +180,68 @@ static void tick_select(void)
 		g_pick -= SEL_COLS;
 	if (meg_raw_down(EXO_BTN_DOWN) && g_pick + SEL_COLS < CH_COUNT)
 		g_pick += SEL_COLS;
+	if (meg_game()->mode == MODE_STORY && g_pick == CH_ZIM)
+		g_pick = CH_SHIRA;
 	if (meg_raw_down(EXO_BTN_B))
 		meg_set_screen(SCR_MAIN);
 	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
+		if (meg_game()->mode == MODE_STORY)
+			meg_story_begin(g_pick);
 		round_reset();
 		meg_set_screen(SCR_PLAY);
 	}
+}
+
+static void draw_continue(void)
+{
+	char buf[40];
+
+	exo_render_bottom(C2D_Color32(16, 8, 12, 255));
+	exo_text_begin();
+	exo_text(16, 40, 0.7f, C2D_Color32(255, 80, 80, 255), "CONTINUE?");
+	snprintf(buf, sizeof buf, "USED %d", meg_game()->numcontinues);
+	exo_text(16, 90, 0.45f, C2D_Color32(220, 220, 230, 255), buf);
+	exo_text(16, 140, 0.42f, C2D_Color32(255, 220, 90, 255),
+	         "A  yes   (same fight)");
+	exo_text(16, 164, 0.42f, C2D_Color32(180, 180, 190, 255), "B  give up");
+}
+
+static void tick_continue(void)
+{
+	MegGame *g = meg_game();
+
+	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
+		g->used_continue = 1;
+		g->numcontinues++;
+		round_reset();
+		meg_set_screen(SCR_PLAY);
+	}
+	if (meg_raw_down(EXO_BTN_B))
+		meg_set_screen(SCR_MAIN);
+}
+
+static void draw_storyend(void)
+{
+	char buf[48];
+	MegGame *g = meg_game();
+
+	exo_render_bottom(C2D_Color32(12, 16, 28, 255));
+	exo_text_begin();
+	exo_text(16, 24, 0.6f, C2D_Color32(255, 220, 90, 255), "STORY CLEAR");
+	snprintf(buf, sizeof buf, "DIFF %d   CONTINUES %d",
+	         g->difficulty, g->numcontinues);
+	exo_text(16, 70, 0.42f, C2D_Color32(230, 230, 240, 255), buf);
+	if (g->unlock_zim_surv)
+		exo_text(16, 100, 0.4f, C2D_Color32(80, 220, 120, 255),
+		         "ZIM SURVIVAL UNLOCKED");
+	exo_text(16, 200, 0.38f, C2D_Color32(140, 140, 160, 255), "A  menu");
+}
+
+static void tick_storyend(void)
+{
+	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START) ||
+	    meg_raw_down(EXO_BTN_B))
+		meg_set_screen(SCR_MAIN);
 }
 
 static void draw_play_hud(void)
@@ -183,9 +250,13 @@ static void draw_play_hud(void)
 
 	exo_render_bottom(C2D_Color32(16, 16, 24, 255));
 	exo_text_begin();
-	snprintf(buf, sizeof buf, "%s d%d  P1 %d  CPU %d",
-	         meg_mode_name(meg_game()->mode), meg_game()->difficulty,
-	         g_p1.hp, g_p2.hp);
+	snprintf(buf, sizeof buf, "%s %d/%d d%d  P1 %d  CPU %d",
+	         meg_mode_name(meg_game()->mode),
+	         meg_game()->mode == MODE_STORY ? meg_game()->story_level + 1 : 1,
+	         meg_game()->mode == MODE_STORY
+	             ? meg_story_len(meg_game()->difficulty)
+	             : 1,
+	         meg_game()->difficulty, g_p1.hp, g_p2.hp);
 	exo_text(8, 8, 0.5f, C2D_Color32(255, 255, 255, 255), buf);
 	exo_bot_rect(8, 32, (float)g_p1.hp * 0.14f, 10,
 	             C2D_Color32(220, 196, 72, 255));
@@ -204,7 +275,8 @@ static void draw_play_hud(void)
 	         g_intro > 0 ? "GET READY" : (g_paused ? "PAUSED" : "LLL  LLH  LH"));
 	exo_text(8, 210, 0.4f, C2D_Color32(120, 120, 140, 255),
 	         (g_p1.hp <= 0 || g_p2.hp <= 0)
-	             ? "Y rematch  B roster"
+	             ? (meg_game()->mode == MODE_STORY ? ""
+	                                               : "Y rematch  B roster")
 	             : "SELECT options   HOME exit");
 }
 
@@ -253,6 +325,23 @@ static void tick_play(float dt)
 		return;
 	}
 	if (g_p1.hp <= 0 || g_p2.hp <= 0) {
+		MegGame *g = meg_game();
+
+		if (g->mode == MODE_STORY) {
+			if (g_p2.hp <= 0 && g_p1.hp > 0) {
+				g->story_level++;
+				if (meg_story_done()) {
+					if (!g->used_continue && g->difficulty < 6)
+						g->unlock_zim_surv = 1;
+					meg_set_screen(SCR_STORYEND);
+				} else {
+					round_reset();
+				}
+			} else {
+				meg_set_screen(SCR_CONTINUE);
+			}
+			return;
+		}
 		if (meg_down(MEG_ACT_LIGHT) || meg_down(MEG_ACT_HEAVY))
 			round_reset();
 		if (meg_raw_down(EXO_BTN_B))
@@ -338,6 +427,10 @@ int main(void)
 
 		if (scr == SCR_SELECT) {
 			tick_select();
+		} else if (scr == SCR_CONTINUE) {
+			tick_continue();
+		} else if (scr == SCR_STORYEND) {
+			tick_storyend();
 		} else if (scr == SCR_PLAY && meg_raw_down(EXO_BTN_SELECT) &&
 		           g_intro <= 0) {
 			g_binds_ingame = 1;
@@ -360,6 +453,10 @@ int main(void)
 			draw_select();
 		else if (scr == SCR_PLAY)
 			draw_play_hud();
+		else if (scr == SCR_CONTINUE)
+			draw_continue();
+		else if (scr == SCR_STORYEND)
+			draw_storyend();
 		else if (scr == SCR_BINDS || scr == SCR_CAPTURE)
 			draw_menu();
 		else

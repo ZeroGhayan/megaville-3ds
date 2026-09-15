@@ -247,6 +247,13 @@ void meg_menu_draw_top(void)
 	case SCR_OPTIONS:
 		exo_top_text(200, 100, 0.6f, gold, "OPTIONS");
 		break;
+	case SCR_CONTINUE:
+		exo_top_text(200, 100, 0.8f, C2D_Color32(255, 80, 80, 255),
+		             "CONTINUE?");
+		break;
+	case SCR_STORYEND:
+		exo_top_text(200, 100, 0.7f, gold, "THE END");
+		break;
 	default:
 		break;
 	}

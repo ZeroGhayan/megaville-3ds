@@ -213,6 +213,7 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->tap_age = b->tap_age = 0;
 	a->shot_on = b->shot_on = 0;
 	a->shot_hit = b->shot_hit = 0;
+	a->twin = b->twin = 0;
 }
 
 static void start_dash(Fighter *p, int dir)

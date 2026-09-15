@@ -1,38 +1,30 @@
 # Story — `frame_2148`, `2248–2310`, `2332`
 
-## Entrada
-Story + 1P → dificuldade → select (`_storylevel = 0`).
-Primeira confirmação (`_storylevel == 0`) vai a `1624` (intro); as outras, a `2148`.
-
 CPU: `spriteName[1] = SPRITE_OPPONENTS[P1][_storylevel]`
+Tint ciano **só** se `P1 == CPU` (`twinClrTrans`). Não é “luta 3 = mirror” para todos.
 
-## Rosters (`NUMOF_OPPONENTS = 8`)
+## Lutas 1–8 e self-mirror (P1==CPU)
 
-Índice 2 é **mirror** (mesmo personagem, tint `twinClrTrans`).
-
-| P1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+| P1 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|
-| Blossom | Bubbles | Buttercup | Blossom | Dexter | Rowdy | Zim | Bell | Shira |
-| Bubbles | Buttercup | Blossom | Bubbles | Dexter | Rowdy | Zim | Bell | Shira |
-| Buttercup | Blossom | Bubbles | Buttercup | Dexter | Rowdy | Zim | Bell | Shira |
-| Bell / Shira | Blossom | Bubbles | Buttercup | Dexter | Rowdy | Zim | Bell | Shira |
-| Dexter | Dexter | Bubbles | Buttercup | Blossom | Rowdy | Zim | Bell | Shira |
-| Rowdy | Rowdy | Bubbles | Buttercup | Blossom | Dexter | Zim | Bell | Shira |
-| Zim | *(sem tabela)* | | | | | | | |
+| Blossom | Bubbles | Buttercup | **Blossom** | Dexter | Rowdy | Zim | Bell | Shira |
+| Bubbles | Buttercup | Blossom | **Bubbles** | Dexter | Rowdy | Zim | Bell | Shira |
+| Buttercup | Blossom | Bubbles | **Buttercup** | Dexter | Rowdy | Zim | Bell | Shira |
+| Bell | Blossom | Bubbles | Buttercup | Dexter | Rowdy | Zim | **Bell** | Shira |
+| Shira | Blossom | Bubbles | Buttercup | Dexter | Rowdy | Zim | Bell | **Shira** |
+| Dexter | **Dexter** | Bubbles | Buttercup | Blossom | Rowdy | Zim | Bell | Shira |
+| Rowdy | **Rowdy** | Bubbles | Buttercup | Blossom | Dexter | Zim | Bell | Shira |
 
-## Comprimento
-Vitória: `_storylevel++`. Acaba se:
-- `level >= 8` **ou**
-- `level >= 7` **e** `_difficulty <= 5`
+Excepções vs “sempre luta 3”:
+- Rowdy / Dexter: mirror na **1**
+- Bell: mirror na **7**; Shira na **8**
+- Dexter 2–4 no AS2 são as três meninas, **não** clones dele
+- Blossom/Bubbles luta 4 no AS2 é **Dexter**, não segundo clone
 
-Diff 1–5: **7 lutas** (para em Bell, sem Shira).
-Diff 6–10: **8 lutas** (Shira no fim).
+Zim: sem tabela no Flash; select de Story no 3DS omite-o.
 
-## Entre lutas
-- Antes: clip `stories` `"P1-P2"`; se CPU = Shira, label `"shira"`.
-- Depois da vitória: `"P1-P2-end"`.
-- Derrota: `2352` continue. Continue **não** incrementa level (`_continue = true`, `_numcontinues++`, replay `2135`).
-
-## Finais (`2332`)
-Se nunca continuou, diff < 6 e Zim-survival ainda locked → `4644` (unlock).
-Senão diff < 6 → `2777`; diff ≥ 6 → `2772` (stats em `2774`).
+## Comprimento / continue
+Diff ≤ 5: 7 lutas (acaba na Bell). Diff ≥ 6: 8 (Shira).
+Vitória: `_storylevel++`, **não** volta à select.
+Derrota: CONTINUE. A = mesmo level, `_continue=true`, `_numcontinues++`. B = desiste.
+Clear em diff < 6 sem continue → unlock Zim-survival.
