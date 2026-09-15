@@ -14,3 +14,6 @@
 
 Modos: `MODE_STORY 0` `VERSUS 1` `SURVIVAL 2` `DEMO 3` `TUTORIAL 4`.
 `MAX_DIFFICULTY = 10`.
+
+Jogo autoral (exo-verse): dificuldade **0.0–10.0** estilo Smash, com custo extra de 9.0→10.0. Ver `difficulty-authoral.md`. Não misturar as duas escalas.
+
