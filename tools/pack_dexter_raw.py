@@ -19,7 +19,7 @@ except ImportError:
     sys.exit(1)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from flash_twin import twin_mul, core_feet
+from flash_twin import twin_mul, core_feet, knockout_border
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DUMP_CAND = [
@@ -142,7 +142,7 @@ def main():
     # origem Flash: (0,0) do clip. Sem PlaceObject no dump AS, usamos
     # os pes do nucleo opaco do idle (alpha>=200), nao a sombra.
     p0 = frame_path(dump, 1)
-    im0 = Image.open(p0).convert("RGBA") if p0 else None
+    im0 = knockout_border(Image.open(p0).convert("RGBA")) if p0 else None
     uniq = set(sizes)
     print("tamanhos unicos:", uniq)
     shared = len(uniq) <= 1 and im0 is not None
@@ -172,7 +172,7 @@ def main():
             p = frame_path(dump, n)
             if not p:
                 continue
-            im = Image.open(p).convert("RGBA")
+            im = knockout_border(Image.open(p).convert("RGBA"))
             bb = bbox(im)
             l, t, r, bot = bb
             if l > 0:

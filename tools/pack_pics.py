@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 """Retratos VS/Continue.
 
-Pasta (local, gitignored):
-  assets/private/pics/
-
-Nomes (qualquer capitalização, .png / .jpg):
-  blossom.png     bubbles.png     buttercup.png   bell.png
-  dexter.png      rowdy.png       zim.png         shira.png
-
-Aceita também 0.png…7.png nessa ordem, ou 'rowdyruff', 'shirabell'.
+  assets/private/pics/blossom.png … dexter.png … shira.png
+  (ou 0.png…7.png)
 """
 from __future__ import print_function
 import os
@@ -21,7 +15,7 @@ except ImportError:
     sys.exit(1)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from flash_twin import twin_mul
+from flash_twin import twin_mul, knockout_border, trim_alpha
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SRC = os.path.join(ROOT, "assets", "private", "pics")
@@ -30,10 +24,7 @@ NAMES = ["blossom", "bubbles", "buttercup", "bell",
          "dexter", "rowdy", "zim", "shira"]
 ALIAS = {
     "rowdyruff": "rowdy",
-    "rowdy": "rowdy",
     "shirabell": "shira",
-    "shira": "shira",
-    "ppgbloom": "blossom",
 }
 
 
@@ -63,6 +54,21 @@ def find(name):
     return hits[0]
 
 
+def fit_pic(im):
+    im = knockout_border(im.convert("RGBA"))
+    im, _, _ = trim_alpha(im, 2)
+    w, h = im.size
+    max_h, max_w = 150, 120
+    s = 1.0
+    if h > max_h:
+        s = max_h / float(h)
+    if w * s > max_w:
+        s = max_w / float(w)
+    if s < 1.0:
+        im = im.resize((max(1, int(w * s)), max(1, int(h * s))), Image.BICUBIC)
+    return im
+
+
 def main():
     print("pics dir:", SRC)
     print("existe:", os.path.isdir(SRC))
@@ -76,10 +82,7 @@ def main():
         p = find(name)
         out = os.path.join(GFX, "pic", "%d.png" % i)
         if p:
-            im = Image.open(p).convert("RGBA")
-            if im.size[1] > 160:
-                nw = max(1, im.size[0] * 160 // im.size[1])
-                im = im.resize((nw, 160), Image.BICUBIC)
+            im = fit_pic(Image.open(p))
             im.save(out)
             print("pic", i, name, "←", os.path.basename(p), im.size)
             n += 1
