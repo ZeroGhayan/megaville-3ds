@@ -25,6 +25,10 @@ static int g_saved_ok = 1;
 static int g_intro = INTRO_LEN;
 static int g_pick = 0;
 static int g_binds_ingame;
+static int g_vs_lock;
+static int g_cont_n;
+static int g_cont_t;
+static int g_cont_row;
 
 static void apply_chars(void)
 {
@@ -47,6 +51,45 @@ static void round_reset(void)
 	apply_chars();
 	g_intro = INTRO_LEN;
 	g_paused = 0;
+}
+
+static void goto_vs(void)
+{
+	apply_chars();
+	g_vs_lock = 25;
+	meg_set_screen(SCR_VS);
+}
+
+static void draw_vs_top(void)
+{
+	exo_top_text(110.0f, 8.0f, 0.55f, C2D_Color32(255, 255, 255, 255),
+	             CH_NAME[g_p1.ch]);
+	exo_top_text(290.0f, 8.0f, 0.55f, C2D_Color32(255, 255, 255, 255),
+	             CH_NAME[g_p2.ch]);
+	C2D_DrawRectSolid(20.0f, 42.0f, 0.2f, 360.0f, 168.0f,
+	                  C2D_Color32(8, 18, 80, 255));
+	meg_draw_pic(g_p1.ch, 110.0f, 200.0f, 2.6f, 1, 0);
+	meg_draw_pic(g_p2.ch, 290.0f, 200.0f, 2.6f, -1,
+	             g_p2.twin ? C2D_Color32(80, 200, 255, 255) : 0);
+	exo_top_text(200.0f, 100.0f, 1.1f, C2D_Color32(255, 255, 255, 255), "VS");
+}
+
+static void draw_continue_top(void)
+{
+	char n[4];
+
+	if (g_cont_n < 0) {
+		meg_draw_pic(g_p1.ch, 110.0f, 210.0f, 2.8f, 1,
+		             C2D_Color32(40, 255, 90, 255));
+		exo_top_text(250.0f, 100.0f, 0.7f, C2D_Color32(255, 255, 255, 255),
+		             "GAME OVER");
+		return;
+	}
+	exo_top_text(200.0f, 8.0f, 0.65f, C2D_Color32(255, 255, 255, 255),
+	             "CONTINUE?");
+	meg_draw_pic(g_p1.ch, 110.0f, 210.0f, 2.8f, 1, 0);
+	snprintf(n, sizeof n, "%d", g_cont_n);
+	exo_top_text(270.0f, 90.0f, 1.6f, C2D_Color32(255, 255, 255, 255), n);
 }
 
 static u32 phase_col(const Fighter *f)
@@ -107,6 +150,14 @@ static void draw_eye(ExoEye eye)
 	float px;
 	int scr = meg_screen();
 
+	if (scr == SCR_VS || scr == SCR_CONTINUE) {
+		exo_render_eye(eye, C2D_Color32(0, 0, 0, 255));
+		if (scr == SCR_VS)
+			draw_vs_top();
+		else
+			draw_continue_top();
+		return;
+	}
 	if (scr != SCR_PLAY && scr != SCR_SELECT &&
 	    scr != SCR_BINDS && scr != SCR_CAPTURE) {
 		exo_render_eye(eye, C2D_Color32(18, 8, 28, 255));
@@ -187,37 +238,87 @@ static void tick_select(void)
 	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
 		if (meg_game()->mode == MODE_STORY)
 			meg_story_begin(g_pick);
-		round_reset();
-		meg_set_screen(SCR_PLAY);
+		goto_vs();
 	}
 }
 
 static void draw_continue(void)
 {
-	char buf[40];
+	u32 a = (g_cont_row == 0) ? C2D_Color32(255, 220, 90, 255)
+	                          : C2D_Color32(220, 220, 230, 255);
+	u32 b = (g_cont_row == 1) ? C2D_Color32(255, 220, 90, 255)
+	                          : C2D_Color32(220, 220, 230, 255);
 
-	exo_render_bottom(C2D_Color32(16, 8, 12, 255));
+	exo_render_bottom(C2D_Color32(0, 0, 0, 255));
 	exo_text_begin();
-	exo_text(16, 40, 0.7f, C2D_Color32(255, 80, 80, 255), "CONTINUE?");
-	snprintf(buf, sizeof buf, "USED %d", meg_game()->numcontinues);
-	exo_text(16, 90, 0.45f, C2D_Color32(220, 220, 230, 255), buf);
-	exo_text(16, 140, 0.42f, C2D_Color32(255, 220, 90, 255),
-	         "A  yes   (same fight)");
-	exo_text(16, 164, 0.42f, C2D_Color32(180, 180, 190, 255), "B  give up");
+	if (g_cont_n < 0) {
+		exo_text(16, 100, 0.5f, C2D_Color32(200, 200, 210, 255),
+		         "A / B   menu");
+		return;
+	}
+	exo_text(24, 100, 0.55f, a, "CONTINUE");
+	exo_text(160, 100, 0.55f, b, "BACK TO MENU");
 }
 
 static void tick_continue(void)
 {
 	MegGame *g = meg_game();
 
+	if (g_vs_lock > 0)
+		g_vs_lock--;
+	if (g_cont_n < 0) {
+		if (g_vs_lock == 0 &&
+		    (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_B) ||
+		     meg_raw_down(EXO_BTN_START)))
+			meg_set_screen(SCR_MAIN);
+		return;
+	}
+	g_cont_t++;
+	if (g_cont_t >= 60) {
+		g_cont_t = 0;
+		g_cont_n--;
+		if (g_cont_n < 0)
+			g_vs_lock = 12;
+	}
+	if (g_vs_lock > 0)
+		return;
+	if (meg_raw_down(EXO_BTN_LEFT))
+		g_cont_row = 0;
+	if (meg_raw_down(EXO_BTN_RIGHT))
+		g_cont_row = 1;
 	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
-		g->used_continue = 1;
-		g->numcontinues++;
-		round_reset();
-		meg_set_screen(SCR_PLAY);
+		if (g_cont_row == 0) {
+			g->used_continue = 1;
+			g->numcontinues++;
+			goto_vs();
+		} else {
+			meg_set_screen(SCR_MAIN);
+		}
 	}
 	if (meg_raw_down(EXO_BTN_B))
 		meg_set_screen(SCR_MAIN);
+}
+
+static void tick_vs(void)
+{
+	if (g_vs_lock > 0) {
+		g_vs_lock--;
+		return;
+	}
+	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_B) ||
+	    meg_raw_down(EXO_BTN_START) || meg_down(MEG_ACT_LIGHT) ||
+	    meg_down(MEG_ACT_HEAVY)) {
+		round_reset();
+		meg_set_screen(SCR_PLAY);
+	}
+}
+
+static void draw_vs_bot(void)
+{
+	exo_render_bottom(C2D_Color32(0, 0, 0, 255));
+	exo_text_begin();
+	exo_text(16, 110, 0.42f, C2D_Color32(180, 180, 190, 255),
+	         "Y / X / A   fight");
 }
 
 static void draw_storyend(void)
@@ -335,9 +436,13 @@ static void tick_play(float dt)
 						g->unlock_zim_surv = 1;
 					meg_set_screen(SCR_STORYEND);
 				} else {
-					round_reset();
+					goto_vs();
 				}
 			} else {
+				g_cont_n = 9;
+				g_cont_t = 0;
+				g_cont_row = 0;
+				g_vs_lock = 25;
 				meg_set_screen(SCR_CONTINUE);
 			}
 			return;
@@ -427,6 +532,8 @@ int main(void)
 
 		if (scr == SCR_SELECT) {
 			tick_select();
+		} else if (scr == SCR_VS) {
+			tick_vs();
 		} else if (scr == SCR_CONTINUE) {
 			tick_continue();
 		} else if (scr == SCR_STORYEND) {
@@ -453,6 +560,8 @@ int main(void)
 			draw_select();
 		else if (scr == SCR_PLAY)
 			draw_play_hud();
+		else if (scr == SCR_VS)
+			draw_vs_bot();
 		else if (scr == SCR_CONTINUE)
 			draw_continue();
 		else if (scr == SCR_STORYEND)

@@ -149,8 +149,15 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 
 void meg_draw_idle(int ch, float x, float y, float scale)
 {
+	meg_draw_pic(ch, x, y, scale, 1, 0);
+}
+
+void meg_draw_pic(int ch, float x, float y, float scale, int face,
+                  uint32_t tint)
+{
 	C2D_Image img;
-	float w, h;
+	C2D_ImageTint it;
+	float w, h, sx;
 
 	ch = clamp_ch(ch);
 	if (!g_ok[ch])
@@ -160,5 +167,15 @@ void meg_draw_idle(int ch, float x, float y, float scale)
 		return;
 	w = img.subtex->width * scale;
 	h = img.subtex->height * scale;
-	C2D_DrawImageAt(img, x - w * 0.5f, y - h, 0.5f, NULL, -scale, scale);
+	sx = face >= 0 ? -scale : scale;
+	x -= w * 0.5f;
+	if (sx < 0.0f)
+		x += w;
+	if (tint) {
+		C2D_PlainImageTint(&it, tint, 0.65f);
+		C2D_DrawImageAt(img, x, y - h, 0.5f, &it, sx, scale);
+	} else {
+		C2D_DrawImageAt(img, x, y - h, 0.5f, NULL, sx, scale);
+	}
 }
+
