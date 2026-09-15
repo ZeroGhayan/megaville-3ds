@@ -10,7 +10,9 @@ platforms/3ds/build/
 
 # generated gfx
 platforms/3ds/romfs/
-platforms/3ds/gfx/*.png
+platforms/3ds/gfx/**/*.png
+platforms/3ds/gfx/dex_*.t3s
+platforms/3ds/gfx/dex_*/
 romfs/gfx/
 
 # --- private / third-party IP (keep on disk, never push) ---

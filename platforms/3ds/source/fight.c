@@ -1,13 +1,13 @@
 #include "fight.h"
 #include "binds.h"
 #include "roster.h"
+#include "clip.h"
 
 #include <stdlib.h>
 
 #define GROUND 200.0f
 #define GRAVITY 900.0f
 #define WALK 140.0f
-#define JUMP_V 280.0f
 #define JUMP_V 280.0f
 #define LEFT_WALL 8.0f
 #define RIGHT_WALL 392.0f
@@ -214,6 +214,9 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->shot_on = b->shot_on = 0;
 	a->shot_hit = b->shot_hit = 0;
 	a->twin = b->twin = 0;
+	a->clip_id = b->clip_id = -1;
+	a->clip_f = b->clip_f = 0;
+	a->clip_t = b->clip_t = 0.0f;
 }
 
 static void start_dash(Fighter *p, int dir)
@@ -381,6 +384,7 @@ void fight_physics(Fighter *p, float dt)
 		p->phase = FIGHT_IDLE;
 		p->vx = 0.0f;
 	}
+	meg_clip_tick(p, dt);
 }
 
 static int apply_hp(Fighter *vic, int raw)

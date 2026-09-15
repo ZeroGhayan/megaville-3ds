@@ -1,5 +1,6 @@
 #include "sprites.h"
 #include "roster.h"
+#include "clip.h"
 
 #include <citro2d.h>
 
@@ -124,6 +125,10 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 
 	if (!g_any)
 		return;
+	if (meg_clip_ok(f->ch)) {
+		meg_clip_draw(f, parallax);
+		return;
+	}
 	ch = clamp_ch(f->ch);
 	if (!g_ok[ch])
 		return;

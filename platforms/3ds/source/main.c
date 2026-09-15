@@ -5,6 +5,7 @@
 #include "menu.h"
 #include "game.h"
 #include "sprites.h"
+#include "clip.h"
 
 #include <citro2d.h>
 #include <stdio.h>
@@ -522,6 +523,7 @@ int main(void)
 	meg_game_init();
 	round_reset();
 	meg_sprites_init();
+	meg_clip_init();
 	meg_set_screen(SCR_TITLE);
 
 	while (exo_frame_begin()) {
@@ -574,6 +576,7 @@ int main(void)
 		exo_frame_end();
 	}
 
+	meg_clip_fini();
 	meg_sprites_fini();
 	exo_shutdown();
 	return 0;
