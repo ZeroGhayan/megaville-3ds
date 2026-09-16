@@ -29,6 +29,8 @@ A **pose dentro do PNG** não está lá.
 - `scaleX = -1` em atlas citro2d já partiu o P2 no VS; nas folhas `dex_*` o P1 (vira à direita) pode estar a amostrar UV errado.
 - Só o Dexter usa o clip de 646 PNG. Os outros 7 ainda são 8 fatias.
 
-## Qualidade (`_quality = HIGH`)
+## Qualidade — descartada
 
-O jogo pede anti-alias vectorial. O JPEXS rasteriza frame a frame. Frame vector ≠ frame bitmap importado → nitidez a variar. Isso **não** desloca o personagem; desloca o aspecto.
+Ruffle LOW / MEDIUM / HIGH: Blossom e Dexter nos **mesmos** píxeis.
+`_quality = HIGH` só muda anti-alias. Próximo: `tools/swf_place.py`.
+

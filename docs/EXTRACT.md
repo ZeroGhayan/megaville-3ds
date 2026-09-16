@@ -62,8 +62,19 @@ O script compara cada `DefineSprite_NNNN` anónimo com o pai nomeado
 - `FROZEN` — o pai só fotografou o frame 1; usamos o filho
 - `PARTIAL` / `UNUSED` — ver o span e decidir
 
-Se o `.md` for grande demais para colar no chat, faz `git push` **só
-desse ficheiro**.
+## 8. Matrizes PlaceObject (origem Flash)
+
+A qualidade LOW/MEDIUM/HIGH **não** mexe a posição (confirmado no Ruffle).
+O (0,0) do lutador está no SWF:
+
+```bash
+python3 tools/swf_place.py
+git add data/place-map.md && git commit -m "place map" && git push
+```
+
+`tx,ty` = offset de cada filho em px. Origem do PNG JPEXS ≈ `(−min tx, −min ty)`
+quando o filho se estende para coordenadas negativas (pés no (0,0), corpo em y<0).
+
 
 ## 4. Áudio
 
