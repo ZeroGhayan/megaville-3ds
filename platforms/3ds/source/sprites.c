@@ -1,6 +1,7 @@
 #include "sprites.h"
 #include "roster.h"
 #include "clip.h"
+#include "spr_off.h"
 
 #include <citro2d.h>
 #include <string.h>
@@ -184,9 +185,10 @@ static int clamp_ch(int ch)
 
 void meg_draw_fighter(const Fighter *f, float parallax)
 {
-	C2D_Image img;
-	float w, h, x, y, sx;
-	int ch;
+	C2D_Sprite spr;
+	C2D_SpriteSheet sh;
+	float rx, ry, ox, oy, w, h;
+	int ch, fr;
 
 	if (!g_any)
 		return;
@@ -197,20 +199,30 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 	ch = clamp_ch(f->ch);
 	if (!g_ok[ch])
 		return;
-	if (f->twin && g_ok_t[ch] && g_img_t[ch][pick(f)].subtex)
-		img = g_img_t[ch][pick(f)];
+	fr = pick(f);
+	if (f->twin && g_ok_t[ch] && g_sheet_t[ch])
+		sh = g_sheet_t[ch];
 	else
-		img = g_img[ch][pick(f)];
-	if (!img.subtex)
+		sh = g_sheet[ch];
+	if (!sh)
 		return;
-	w = img.subtex->width;
-	h = img.subtex->height;
-	sx = f->face >= 0 ? -1.0f : 1.0f;
-	x = f->x + parallax + (f->w - w) * 0.5f + g_offx[ch];
-	y = f->y + f->h - h + g_offy[ch];
-	if (sx < 0.0f)
-		x += w;
-	C2D_DrawImageAt(img, x, y, 0.5f, NULL, sx, 1.0f);
+	C2D_SpriteFromSheet(&spr, sh, (size_t)fr);
+	w = spr.image.subtex ? spr.image.subtex->width : 0;
+	h = spr.image.subtex ? spr.image.subtex->height : 0;
+	if (w < 1.0f || h < 1.0f)
+		return;
+	ox = w * 0.5f;
+	oy = h;
+	if (SPR_OX[ch][fr] || SPR_OY[ch][fr]) {
+		ox = (float)SPR_OX[ch][fr];
+		oy = (float)SPR_OY[ch][fr];
+	}
+	rx = f->x + f->w * 0.5f + parallax;
+	ry = f->y + f->h;
+	C2D_SpriteSetCenter(&spr, ox, oy);
+	C2D_SpriteSetPos(&spr, rx, ry);
+	C2D_SpriteSetScale(&spr, f->face >= 0 ? -1.0f : 1.0f, 1.0f);
+	C2D_DrawSprite(&spr);
 }
 
 void meg_draw_idle(int ch, float x, float y, float scale)

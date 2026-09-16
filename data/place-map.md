@@ -128,3 +128,16 @@ Primeiro frame (2 objetos):
 | 1 | 248 | -37.0 | 13.2 | 1.00 | 1.00 |
 | 4 | 1453 | -8.0 | -21.0 | 1.00 | 1.00 |
 
+
+## Como usar no packer
+
+| Clip | origem (0,0) no PNG JPEXS |
+|---|---|
+| Blossom | **296, 47** |
+| Dexter | **296, 132** |
+| Bubbles | 296, 44 |
+| Buttercup | 327, 45 |
+
+`id 248` em (−37, 13.2) = **sombra** (todos os lutadores). Corpo do Dexter/Blossom no depth 4 em (0,0).
+
+Spawn: `_x=100/300` `_y=204`. Hitbox 20×36. fps **25**.

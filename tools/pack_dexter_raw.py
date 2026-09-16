@@ -139,8 +139,8 @@ def main():
     if args.report_only:
         return 0
 
-    # origem Flash: (0,0) do clip. Sem PlaceObject no dump AS, usamos
-    # os pes do nucleo opaco do idle (alpha>=200), nao a sombra.
+    # origem Flash (0,0) no canvas JPEXS — data/place-map.md
+    from flash_origin import FLASH_PNG_ORIGIN
     p0 = frame_path(dump, 1)
     im0 = knockout_border(Image.open(p0).convert("RGBA")) if p0 else None
     uniq = set(sizes)
@@ -148,8 +148,8 @@ def main():
     shared = len(uniq) <= 1 and im0 is not None
     sox = soy = 0
     if shared:
-        sox, soy = core_feet(im0)
-        print("origem partilhada (nucleo idle):", sox, soy, "canvas", im0.size)
+        sox, soy = FLASH_PNG_ORIGIN["dexter"]
+        print("origem Flash (place-map):", sox, soy, "canvas", im0.size)
     else:
         print("AVISO: canvas varia — pes por frame")
 

@@ -135,6 +135,7 @@ gfx_stage:
 		fi; \
 	done
 	@python3 $(TOPDIR)/../../tools/pack_pics.py || echo "pack_pics: sem pics"
+	@python3 $(TOPDIR)/../../tools/pack_sliced_off.py || echo "pack_sliced_off: skip"
 	@python3 $(TOPDIR)/../../tools/pack_sliced_twin.py
 
 build_inner:
