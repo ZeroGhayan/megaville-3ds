@@ -30,6 +30,7 @@ static int g_vs_lock;
 static int g_cont_n;
 static int g_cont_t;
 static int g_cont_row;
+static int g_dbg;
 
 static void apply_chars(void)
 {
@@ -145,6 +146,27 @@ static void draw_shot(const Fighter *f, float px)
 	C2D_DrawRectSolid(f->shot_x + px, f->shot_y, 0.55f, w, h, col);
 }
 
+static void dbg_cross(float x, float y, u32 col)
+{
+	C2D_DrawRectSolid(x - 4.0f, y - 1.0f, 0.9f, 8.0f, 2.0f, col);
+	C2D_DrawRectSolid(x - 1.0f, y - 4.0f, 0.9f, 2.0f, 8.0f, col);
+}
+
+static void draw_dbg(const Fighter *f, float px, u32 body)
+{
+	float x, y, w, h;
+
+	fight_hurtbox(f, &x, &y, &w, &h);
+	C2D_DrawRectSolid(x + px, y, 0.85f, w, h, body);
+	dbg_cross(x + w * 0.5f + px, y + h, C2D_Color32(255, 255, 0, 255));
+	if (fight_hitbox(f, &x, &y, &w, &h))
+		C2D_DrawRectSolid(x + px, y, 0.9f, w, h,
+		                  C2D_Color32(255, 40, 40, 160));
+	if (f->shot_on)
+		C2D_DrawRectSolid(f->shot_x + px, f->shot_y, 0.9f, 28.0f, 8.0f,
+		                  C2D_Color32(0, 255, 255, 180));
+}
+
 static void draw_fighter(const Fighter *f, ExoEye eye)
 {
 	float px = exo_parallax(8.0f, eye);
@@ -192,6 +214,15 @@ static void draw_eye(ExoEye eye)
 		draw_fighter(&g_p2, eye);
 		draw_shot(&g_p1, px);
 		draw_shot(&g_p2, px);
+		if (g_dbg) {
+			C2D_DrawRectSolid(px, GROUND_Y, 0.8f, 400.0f, 1.0f,
+			                  C2D_Color32(255, 255, 0, 200));
+			draw_dbg(&g_p1, px, C2D_Color32(80, 180, 255, 90));
+			draw_dbg(&g_p2, px, C2D_Color32(255, 80, 180, 90));
+			exo_top_text(200.0f, 40.0f, 0.35f,
+			             C2D_Color32(255, 220, 80, 255),
+			             "HITBOX ZL on  ZR off");
+		}
 	}
 	exo_top_text(200.0f, 8.0f, 0.50f, C2D_Color32(240, 240, 240, 255),
 	             "BATTLE IN MEGAVILLE 3D");
@@ -378,6 +409,8 @@ static void draw_play_hud(void)
 	             : 1,
 	         meg_game()->difficulty, g_p1.hp, g_p2.hp);
 	exo_text(8, 8, 0.5f, C2D_Color32(255, 255, 255, 255), buf);
+	if (g_dbg)
+		exo_text(200, 8, 0.35f, C2D_Color32(255, 220, 80, 255), "BOX");
 	exo_bot_rect(8, 32, (float)g_p1.hp * 0.14f, 10,
 	             C2D_Color32(220, 196, 72, 255));
 	exo_bot_rect(8, 48, (float)g_p2.hp * 0.14f, 10,
@@ -548,6 +581,10 @@ int main(void)
 		float dt = exo_dt();
 
 		meg_binds_poll();
+		if (exo_down(EXO_BTN_ZL))
+			g_dbg = 1;
+		if (exo_down(EXO_BTN_ZR))
+			g_dbg = 0;
 		scr = meg_screen();
 
 		if (scr == SCR_SELECT) {

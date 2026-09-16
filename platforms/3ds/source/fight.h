@@ -53,5 +53,7 @@ void fight_reset(Fighter *a, Fighter *b);
 void fight_control(Fighter *p, const Fighter *opp);
 void fight_physics(Fighter *p, float dt);
 void fight_hits(Fighter *a, Fighter *b);
+int  fight_hurtbox(const Fighter *f, float *x, float *y, float *w, float *h);
+int  fight_hitbox(const Fighter *f, float *x, float *y, float *w, float *h);
 
 #endif

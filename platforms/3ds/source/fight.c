@@ -20,6 +20,10 @@ static const int RECOVERY[] = { 10, 14, 12, 14, 16, 16 };
 /* _damage * 15: combo1=5, heavy=6, YYY=14, YYX/YX=6, ranged=6 */
 static const int DAMAGE[]   = { 75, 90, 210, 90, 90, 90 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
+/* Flash _atkdir: X pelo face, Y<0 = juggle. combo3 UP, downatk DOWN, resto push. */
+static const float KB_X[]   = { 90.0f, 130.0f, 40.0f, 150.0f, 180.0f, 0.0f };
+static const float KB_Y[]   = { 0.0f,   0.0f, -260.0f, -140.0f, 20.0f, 0.0f };
+static const int HITSTUN[]  = { 12, 16, 24, 18, 20, 10 };
 
 /* SPRITE_RUNSPEED * 18 px/s */
 static const float WALK_SPD[CH_COUNT] = {
@@ -419,7 +423,7 @@ void fight_physics(Fighter *p, float dt)
 		p->phase = FIGHT_IDLE;
 		p->combo = 0;
 	} else if (p->phase == FIGHT_HIT && p->timer <= 0) {
-		p->phase = FIGHT_IDLE;
+		p->phase = p->grounded ? FIGHT_IDLE : FIGHT_JUMP;
 	} else if (p->phase == FIGHT_FROZEN && p->timer <= 0) {
 		p->phase = FIGHT_IDLE;
 		p->vx = 0.0f;
@@ -446,6 +450,29 @@ static int apply_hp(Fighter *vic, int raw)
 	return d;
 }
 
+static void launch(Fighter *att, Fighter *vic, int mv, int dmg)
+{
+	float kbx, kby;
+
+	apply_hp(vic, dmg);
+	vic->phase = FIGHT_HIT;
+	vic->timer = HITSTUN[mv];
+	kbx = KB_X[mv];
+	kby = KB_Y[mv];
+	if (!att->grounded && mv == MV_HEAVY) {
+		kbx = 40.0f;
+		kby = 220.0f; /* downatk slam */
+		vic->timer = 18;
+	}
+	vic->vx = (float)att->face * kbx;
+	vic->vy = kby;
+	if (kby < 0.0f)
+		vic->grounded = 0;
+	vic->combo = 0;
+	if (vic->hp <= 0)
+		att->shot_on = 0;
+}
+
 static void one_hit(Fighter *att, Fighter *vic)
 {
 	float hx, hy, hw, hh;
@@ -464,24 +491,14 @@ static void one_hit(Fighter *att, Fighter *vic)
 		if (vic->phase == FIGHT_GUARD) {
 			vic->x += att->face * 6.0f;
 		} else {
-			apply_hp(vic, DAMAGE[att->move]);
-			vic->phase = FIGHT_HIT;
-			vic->timer = (att->move == MV_LLL) ? 22 : 14;
-			vic->vx = att->face * ((att->move == MV_LLL) ? 40.0f : 80.0f);
-			if (att->move == MV_LLL && vic->grounded) {
-				vic->vy = -180.0f;
-				vic->grounded = 0;
-			}
-			vic->combo = 0;
-			if (vic->hp <= 0)
-				att->shot_on = 0;
+			launch(att, vic, att->move, DAMAGE[att->move]);
 		}
 	}
 }
 
 static void shot_hit(Fighter *att, Fighter *vic)
 {
-	float hx, hy;
+	float hx, hy, kbx, kby;
 
 	if (!att->shot_on || att->shot_hit)
 		return;
@@ -493,21 +510,59 @@ static void shot_hit(Fighter *att, Fighter *vic)
 		att->shot_on = 0;
 		if (vic->phase == FIGHT_GUARD) {
 			vic->x += att->face * 4.0f;
-		} else if (att->shot_kind == 1 && vic->ch != CH_ZIM) {
-			apply_hp(vic, shot_dmg(att));
+			return;
+		}
+		apply_hp(vic, shot_dmg(att));
+		if (att->shot_kind == 1 && vic->ch != CH_ZIM) {
 			vic->phase = FIGHT_FROZEN;
 			vic->timer = FREEZE_TIME;
 			vic->vx = 0.0f;
 			vic->vy = 0.0f;
 			vic->combo = 0;
-		} else {
-			apply_hp(vic, shot_dmg(att));
-			vic->phase = FIGHT_HIT;
-			vic->timer = 12;
-			vic->vx = att->face * 70.0f;
-			vic->combo = 0;
+			return;
 		}
+		kbx = 70.0f;
+		kby = 0.0f;
+		if (att->shot_kind == 2) { kbx = 40.0f; }
+		if (att->shot_kind == 3) { kbx = 55.0f; }
+		if (att->shot_kind == 4) { kbx = 90.0f; kby = -80.0f; }
+		if (att->shot_kind == 5) { kbx = 75.0f; kby = -30.0f; }
+		vic->phase = FIGHT_HIT;
+		vic->timer = 14;
+		vic->vx = (float)att->face * kbx;
+		vic->vy = kby;
+		if (kby < 0.0f)
+			vic->grounded = 0;
+		vic->combo = 0;
 	}
+}
+
+int fight_hurtbox(const Fighter *f, float *x, float *y, float *w, float *h)
+{
+	*x = f->x;
+	*y = f->y;
+	*w = f->w;
+	*h = f->h;
+	return 1;
+}
+
+int fight_hitbox(const Fighter *f, float *x, float *y, float *w, float *h)
+{
+	if (f->phase != FIGHT_ACTIVE || f->move == MV_RANGED)
+		return 0;
+	*w = REACH[f->move];
+	*h = 16.0f;
+	*x = f->face > 0 ? f->x + f->w : f->x - *w;
+	*y = f->y + 8.0f;
+	return 1;
+}
+
+void fight_hits(Fighter *a, Fighter *b)
+{
+	one_hit(a, b);
+	one_hit(b, a);
+	shot_hit(a, b);
+	shot_hit(b, a);
 }
 
 void fight_hits(Fighter *a, Fighter *b)
