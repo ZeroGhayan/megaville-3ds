@@ -32,27 +32,27 @@ OFF = os.path.join(ROOT, "platforms", "3ds", "source", "clip_off.h")
 MAX_GPU = 1024
 
 RANGES = [
-    ("idle",    1, 48),
-    ("land",    50, 57),
-    ("jump",    62, 69),
-    ("forward", 71, 84),
-    ("dash",    86, 97),
-    ("shield",  98, 98),
-    ("combo1",  99, 117),
-    ("combo2",  118, 130),
-    ("combo3",  131, 151),
-    ("ranged",  152, 198),
-    ("air",     199, 222),
-    ("downatk", 223, 250),
-    ("fall",    251, 257),
-    ("fallen",  258, 267),
-    ("recover", 268, 278),
-    ("win",     283, 295),
-    ("damage",  319, 394),
-    ("extra",   395, 625),
+    ("idle",     1, 48),
+    ("land",     50, 57),
+    ("jump",     62, 69),
+    ("forward",  71, 84),
+    ("dash",     86, 97),
+    ("shield",   98, 98),
+    ("combo1",   99, 117),
+    ("combo2",   118, 130),
+    ("combo3",   131, 151),
+    ("ranged",   152, 198),
+    ("air",      199, 222),
+    ("downatk",  223, 250),
+    ("fall",     251, 257),
+    ("fallen",   258, 267),
+    ("recover",  268, 278),
+    ("win",      283, 295),
+    ("teleport", 296, 318),
+    ("damage",   330, 394),
 ]
 ONESHOT = set(("combo1", "combo2", "combo3", "ranged", "air",
-               "downatk", "fall", "recover", "damage", "dash"))
+               "downatk", "fall", "recover", "damage", "dash", "teleport"))
 
 
 def find_dump():
