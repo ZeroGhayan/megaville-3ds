@@ -19,6 +19,7 @@ platforms/3ds/gfx/*_t.t3s
 platforms/3ds/gfx/*_t/
 platforms/3ds/gfx/*_*_*.t3s
 platforms/3ds/source/clip_off.h
+platforms/3ds/source/clip_table.h
 romfs/gfx/
 
 # --- private / third-party IP (keep on disk, never push) ---

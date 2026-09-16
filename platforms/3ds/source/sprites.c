@@ -75,10 +75,6 @@ static int g_any;
 static int g_picok;
 static int g_picfok;
 
-/* ajuste fino depois do crop manual */
-static float g_offx[CH_COUNT];
-static float g_offy[CH_COUNT];
-
 int meg_sprites_init(void)
 {
 	int c, i;

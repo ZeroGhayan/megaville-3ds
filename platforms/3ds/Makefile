@@ -125,8 +125,10 @@ all: gfx_stage
 
 gfx_stage:
 	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS) $(CURDIR)/gfx
+	@cp -f $(CURDIR)/source/clip_table.stub.h $(CURDIR)/source/clip_table.h
 	@rm -f $(BUILD)/dex_*.d $(BUILD)/dex_*.h
 	@rm -f $(GFXBUILD)/dex_*
+	@rm -f $(CURDIR)/gfx/dex_*.t3s
 	@rm -f $(GFXBUILD)/blossom_* $(GFXBUILD)/bubbles_* $(GFXBUILD)/buttercup_*
 	@rm -f $(GFXBUILD)/bell_* $(GFXBUILD)/shira_* $(GFXBUILD)/zim_* $(GFXBUILD)/rowdy_*
 	@for c in blossom bubbles buttercup bell shira dexter zim rowdy; do \
