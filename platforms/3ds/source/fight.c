@@ -2,80 +2,88 @@
 #include "binds.h"
 #include "roster.h"
 #include "clip.h"
+#include "game.h"
 
 #include <stdlib.h>
 
 #define GROUND 200.0f
 #define GRAVITY 900.0f
-#define WALK 140.0f
 #define JUMP_V 280.0f
 #define LEFT_WALL 8.0f
 #define RIGHT_WALL 392.0f
 
-/* Shared chains: L,L,L  L,L,H  L,H  — same for every character. */
 enum { MV_LIGHT = 0, MV_HEAVY, MV_LLL, MV_LLH, MV_LH, MV_RANGED };
 
 static const int STARTUP[]  = { 5, 8, 4, 5, 6, 8 };
 static const int ACTIVE[]   = { 4, 5, 5, 5, 6, 4 };
 static const int RECOVERY[] = { 10, 14, 12, 14, 16, 16 };
-/* Flash _damage * BASE_DAMAGE (15): combo1=4, heavy/upper=6 */
-static const int DAMAGE[]   = { 60, 90, 60, 90, 90, 90 };
+/* _damage * 15: combo1=5, heavy=6, YYY=14, YYX/YX=6, ranged=6 */
+static const int DAMAGE[]   = { 75, 90, 210, 90, 90, 90 };
 static const float REACH[]  = { 22.0f, 28.0f, 24.0f, 30.0f, 32.0f, 0.0f };
 
-/* SPRITE_RUNSPEED * 18 (Flash px/frame @ ~30fps) */
+/* SPRITE_RUNSPEED * 18 px/s */
 static const float WALK_SPD[CH_COUNT] = {
 	144.0f, 162.0f, 144.0f, 144.0f,
 	126.0f, 144.0f, 144.0f, 252.0f
 };
+/* SPRITE_MAXDASHFUEL — Zim 0 = sem dash */
+static const int DASH_FUEL_CH[CH_COUNT] = {
+	10, 12, 10, 10, 8, 10, 0, 10
+};
+/* X no idle: 0 melee  1 gelo  2 bolha  3 butch  4 beam  5 boomer */
+static const int SHOT_KIND[CH_COUNT] = {
+	1, 2, 3, 5, 4, 5, 0, 5
+};
 
-#define BASE_DAMAGE 15 /* frame_254 DEFAULT_BASE_DAMAGE */
-#define BUBBLE_MUL  3.0f
-#define BUTCH_MUL   0.8f
-#define BLOSSOM_SHOT_MUL 6.0f
+#define BASE_DAMAGE 15
 #define FREEZE_TIME 70
-#define SHOT_SPD 260.0f
-
-static int shot_dmg(const Fighter *att)
-{
-	if (att->shot_kind == 2)
-		return (int)(BUBBLE_MUL * BASE_DAMAGE); /* 45 */
-	if (att->shot_kind == 3)
-		return (int)(BUTCH_MUL * BASE_DAMAGE); /* 12 */
-	return (int)(BLOSSOM_SHOT_MUL * BASE_DAMAGE); /* 90 */
-}
 #define SHOT_SPD 260.0f
 #define SHOT_W   28.0f
 #define SHOT_H   8.0f
+#define DASH_MAX     300
+#define DASH_COST    100
+#define DASH_SPEED   280.0f
+#define DASH_REGEN   30.0f
+#define TAP_WINDOW   12
 
-int fight_is_blossom(const Fighter *f)
-{
-	return f->ch == 0;
-}
+int fight_is_blossom(const Fighter *f) { return f->ch == CH_BLOSSOM; }
+int fight_is_bubbles(const Fighter *f) { return f->ch == CH_BUBBLES; }
+int fight_is_buttercup(const Fighter *f) { return f->ch == CH_BUTTERCUP; }
 
-int fight_is_bubbles(const Fighter *f)
+static int char_shot(const Fighter *f)
 {
-	return f->ch == 1;
-}
-
-int fight_is_buttercup(const Fighter *f)
-{
-	return f->ch == 2;
+	if (f->ch < 0 || f->ch >= CH_COUNT)
+		return 0;
+	return SHOT_KIND[f->ch];
 }
 
 static int can_shoot(const Fighter *f)
 {
-	return !f->shot_on && (fight_is_blossom(f) || fight_is_bubbles(f) ||
-	                       fight_is_buttercup(f));
+	return !f->shot_on && char_shot(f) != 0;
+}
+
+static int shot_dmg(const Fighter *att)
+{
+	switch (att->shot_kind) {
+	case 2: return 3 * BASE_DAMAGE;
+	case 3: return (int)(0.8f * BASE_DAMAGE);
+	case 5: return 2 * BASE_DAMAGE;
+	default: return 6 * BASE_DAMAGE;
+	}
+}
+
+static float shot_spd(int kind)
+{
+	if (kind == 2)
+		return 180.0f;
+	if (kind == 3)
+		return 200.0f;
+	if (kind == 5)
+		return 220.0f;
+	return SHOT_SPD;
 }
 
 static void start_dash(Fighter *p, int dir);
-
-#define DASH_MAX     300
-#define DASH_COST    100
-#define DASH_FUEL    10
-#define DASH_SPEED   280.0f
-#define DASH_REGEN   30.0f /* per second; Flash +1 @ 30fps */
-#define TAP_WINDOW   12
 
 static int can_act(const Fighter *f)
 {
@@ -89,12 +97,14 @@ static void start_move(Fighter *f, int mv)
 	f->phase = FIGHT_STARTUP;
 	f->timer = STARTUP[mv];
 	f->hit_done = 0;
-	f->vx = 0.0f;
+	if (f->grounded)
+		f->vx = 0.0f;
 }
 
 static void try_attack(Fighter *f, int heavy)
 {
-	if (f->phase == FIGHT_STARTUP || f->phase == FIGHT_HIT)
+	if (f->phase == FIGHT_STARTUP || f->phase == FIGHT_HIT ||
+	    f->phase == FIGHT_FROZEN)
 		return;
 
 	if (f->phase == FIGHT_ACTIVE || f->phase == FIGHT_RECOVERY) {
@@ -121,7 +131,7 @@ static void try_attack(Fighter *f, int heavy)
 		return;
 	}
 
-	if (!can_act(f) || !f->grounded)
+	if (!can_act(f) && f->phase != FIGHT_JUMP)
 		return;
 
 	if (heavy) {
@@ -133,6 +143,11 @@ static void try_attack(Fighter *f, int heavy)
 		start_move(f, MV_HEAVY);
 		f->combo = 0;
 	} else {
+		if (!f->grounded && f->ch == CH_DEXTER) {
+			start_move(f, MV_LLL);
+			f->combo = 0;
+			return;
+		}
 		start_move(f, MV_LIGHT);
 		f->combo = 1;
 	}
@@ -161,8 +176,7 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 	else if (dx < -4.0f)
 		f->face = -1;
 
-	if ((fight_is_blossom(f) || fight_is_bubbles(f) || fight_is_buttercup(f)) &&
-	    adx > 140.0f && !f->shot_on && ai_roll(28)) {
+	if (can_shoot(f) && adx > 140.0f && ai_roll(28)) {
 		f->vx = 0.0f;
 		try_attack(f, 1);
 		return;
@@ -170,7 +184,7 @@ static void ai_tick(Fighter *f, const Fighter *opp)
 
 	if (adx > 52.0f) {
 		f->vx = f->face > 0 ? WALK_SPD[f->ch] : -WALK_SPD[f->ch];
-		if (adx > 180.0f && f->dashes >= 100 && ai_roll(3))
+		if (adx > 180.0f && f->dashes >= DASH_COST && ai_roll(3))
 			start_dash(f, f->face);
 		return;
 	}
@@ -204,7 +218,7 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->move = b->move = 0;
 	a->hit_done = b->hit_done = 0;
 	a->ai = 0;
-	b->ai = 0; /* IA desligada para testar sprites / virar */
+	b->ai = meg_game()->dual_ctrl ? 0 : 1;
 	a->dashes = b->dashes = DASH_MAX;
 	a->dash_acc = b->dash_acc = 0.0f;
 	a->dash_fuel = b->dash_fuel = 0;
@@ -217,19 +231,25 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->clip_id = b->clip_id = -1;
 	a->clip_f = b->clip_f = 0;
 	a->clip_t = b->clip_t = 0.0f;
+	a->airj = b->airj = 0;
 }
 
 static void start_dash(Fighter *p, int dir)
 {
+	int fuel;
+
 	if (p->dashed || p->dashes < DASH_COST)
 		return;
-	if (p->ch == CH_ZIM)
+	fuel = (p->ch >= 0 && p->ch < CH_COUNT) ? DASH_FUEL_CH[p->ch] : 10;
+	if (fuel <= 0)
+		return;
+	if (!p->grounded && p->ch == CH_DEXTER)
 		return;
 	if (!can_act(p) && p->phase != FIGHT_WALK)
 		return;
 	p->face = dir;
 	p->phase = FIGHT_DASH;
-	p->dash_fuel = DASH_FUEL;
+	p->dash_fuel = fuel;
 	p->dashed = 1;
 	p->dashes -= DASH_COST;
 	p->vx = (float)dir * DASH_SPEED;
@@ -275,10 +295,18 @@ void fight_control(Fighter *p, const Fighter *opp)
 		}
 		if (!meg_held(MEG_ACT_LEFT) && !meg_held(MEG_ACT_RIGHT))
 			p->dashed = 0;
-		if (can_act(p) && p->grounded && meg_down(MEG_ACT_JUMP)) {
-			p->vy = -JUMP_V;
-			p->grounded = 0;
-			p->phase = FIGHT_JUMP;
+		if (meg_down(MEG_ACT_JUMP)) {
+			if (can_act(p) && p->grounded) {
+				p->vy = -JUMP_V;
+				p->grounded = 0;
+				p->airj = 0;
+				p->phase = FIGHT_JUMP;
+			} else if (!p->grounded && p->ch == CH_DEXTER && !p->airj &&
+			           (p->phase == FIGHT_JUMP || can_act(p))) {
+				p->vy = -JUMP_V;
+				p->airj = 1;
+				p->phase = FIGHT_JUMP;
+			}
 		}
 		if (can_act(p) && p->grounded && meg_held(MEG_ACT_GUARD))
 			p->phase = FIGHT_GUARD;
@@ -302,6 +330,9 @@ void fight_control(Fighter *p, const Fighter *opp)
 
 void fight_physics(Fighter *p, float dt)
 {
+	int kind;
+	float spd;
+
 	if (p->phase == FIGHT_FROZEN)
 		p->vx = 0.0f;
 
@@ -314,6 +345,7 @@ void fight_physics(Fighter *p, float dt)
 		if (!p->grounded && p->phase == FIGHT_JUMP)
 			p->phase = FIGHT_IDLE;
 		p->grounded = 1;
+		p->airj = 0;
 	} else {
 		p->grounded = 0;
 	}
@@ -353,29 +385,19 @@ void fight_physics(Fighter *p, float dt)
 		p->timer = ACTIVE[p->move];
 		p->hit_done = 0;
 		if (p->move == MV_RANGED && !p->shot_on) {
+			kind = char_shot(p);
 			p->shot_on = 1;
 			p->shot_hit = 0;
-			if (fight_is_bubbles(p))
-				p->shot_kind = 2;
-			else if (fight_is_buttercup(p))
-				p->shot_kind = 3;
-			else
-				p->shot_kind = 1;
-			p->shot_y = fight_is_buttercup(p) ? (GROUND - 18.0f)
-			                                 : (p->y + 16.0f);
-			{
-				float spd = SHOT_SPD;
-				if (p->shot_kind == 2)
-					spd = 180.0f;
-				if (p->shot_kind == 3)
-					spd = 200.0f;
-				if (p->face > 0) {
-					p->shot_x = p->x + p->w;
-					p->shot_vx = spd;
-				} else {
-					p->shot_x = p->x - SHOT_W;
-					p->shot_vx = -spd;
-				}
+			p->shot_kind = kind;
+			p->shot_y = (kind == 3) ? (GROUND - 18.0f)
+			                       : (p->y + 16.0f);
+			spd = shot_spd(kind);
+			if (p->face > 0) {
+				p->shot_x = p->x + p->w;
+				p->shot_vx = spd;
+			} else {
+				p->shot_x = p->x - SHOT_W;
+				p->shot_vx = -spd;
 			}
 		}
 	} else if (p->phase == FIGHT_ACTIVE && p->timer <= 0) {
@@ -399,14 +421,16 @@ static int apply_hp(Fighter *vic, int raw)
 
 	if (vic->ch == CH_SHIRA)
 		d *= 2;
-	else if (vic->ch == CH_ZIM)
-		d = (int)(d * 0.8f);
+	else if (vic->ch == CH_ZIM) {
+		d = (int)(d * 0.8f) - 5;
+		if (d < 1)
+			d = 1;
+	}
 	vic->hp -= d;
 	if (vic->hp < 0)
 		vic->hp = 0;
-	if (vic->hp <= 0) {
+	if (vic->hp <= 0)
 		vic->shot_on = 0;
-	}
 	return d;
 }
 
@@ -415,6 +439,8 @@ static void one_hit(Fighter *att, Fighter *vic)
 	float hx, hy, hw, hh;
 
 	if (att->phase != FIGHT_ACTIVE || att->hit_done)
+		return;
+	if (att->move == MV_RANGED)
 		return;
 	hx = att->face > 0 ? att->x + att->w : att->x - REACH[att->move];
 	hy = att->y + 8.0f;
@@ -428,8 +454,12 @@ static void one_hit(Fighter *att, Fighter *vic)
 		} else {
 			apply_hp(vic, DAMAGE[att->move]);
 			vic->phase = FIGHT_HIT;
-			vic->timer = 14;
-			vic->vx = att->face * 80.0f;
+			vic->timer = (att->move == MV_LLL) ? 22 : 14;
+			vic->vx = att->face * ((att->move == MV_LLL) ? 40.0f : 80.0f);
+			if (att->move == MV_LLL && vic->grounded) {
+				vic->vy = -180.0f;
+				vic->grounded = 0;
+			}
 			vic->combo = 0;
 			if (vic->hp <= 0)
 				att->shot_on = 0;

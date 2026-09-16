@@ -134,6 +134,13 @@ static void draw_shot(const Fighter *f, float px)
 		w = 22.0f;
 		h = 10.0f;
 		col = C2D_Color32(80, 220, 90, 230);
+	} else if (f->shot_kind == 4) {
+		w = 26.0f;
+		h = 6.0f;
+		col = C2D_Color32(255, 220, 80, 230);
+	} else if (f->shot_kind == 5) {
+		w = h = 12.0f;
+		col = C2D_Color32(180, 220, 255, 230);
 	}
 	C2D_DrawRectSolid(f->shot_x + px, f->shot_y, 0.55f, w, h, col);
 }
@@ -184,6 +191,7 @@ static void draw_eye(ExoEye eye)
 		draw_fighter(&g_p1, eye);
 		draw_fighter(&g_p2, eye);
 		draw_shot(&g_p1, px);
+		draw_shot(&g_p2, px);
 	}
 	exo_top_text(200.0f, 8.0f, 0.50f, C2D_Color32(240, 240, 240, 255),
 	             "BATTLE IN MEGAVILLE 3D");

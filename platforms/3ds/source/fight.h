@@ -35,12 +35,13 @@ typedef struct {
 	int tap_age;
 	int shot_on;
 	int shot_hit;
-	int shot_kind; /* 1 freeze  2 bubble  3 butch */
+	int shot_kind; /* 1 freeze 2 bubble 3 butch 4 beam 5 boomer */
 	float shot_x, shot_y, shot_vx;
 	int twin;
 	int clip_id;
 	int clip_f;
 	float clip_t;
+	int airj;
 } Fighter;
 
 int fight_is_blossom(const Fighter *f);

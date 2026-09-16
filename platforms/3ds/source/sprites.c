@@ -330,13 +330,13 @@ void meg_draw_stage(float parallax)
 
 	if (g_city) {
 		img = C2D_SpriteSheetGetImage(g_city, 0);
-		if (img.subtex)
+		if (img.subtex && img.subtex->width >= 200)
 			C2D_DrawImageAt(img, parallax * 0.25f, 0.0f, 0.2f,
 			                NULL, 1.0f, 1.0f);
 	}
 	if (g_terrain) {
 		img = C2D_SpriteSheetGetImage(g_terrain, 0);
-		if (img.subtex)
+		if (img.subtex && img.subtex->width >= 200)
 			C2D_DrawImageAt(img, parallax, 200.0f - img.subtex->height + 8.0f,
 			                0.3f, NULL, 1.0f, 1.0f);
 		else
