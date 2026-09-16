@@ -226,7 +226,15 @@ void meg_clip_draw(const Fighter *f, float parallax)
 	oy = CLIP_OY[ch][idx];
 	rx = f->x + f->w * 0.5f + parallax;
 	ry = f->y + f->h;
-	meg_blit(img, rx, ry, (float)ox, (float)oy, f->face);
+	{
+		float sc = 1.0f;
+
+		if (oy > 8)
+			sc = f->h / (float)oy;
+		else if (img.subtex->height > 0)
+			sc = f->h / (float)img.subtex->height;
+		meg_blit(img, rx, ry, (float)ox, (float)oy, f->face, sc);
+	}
 }
 
 #else

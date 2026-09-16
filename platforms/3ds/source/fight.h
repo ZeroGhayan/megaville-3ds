@@ -50,6 +50,7 @@ int fight_is_bubbles(const Fighter *f);
 int fight_is_buttercup(const Fighter *f);
 
 void fight_reset(Fighter *a, Fighter *b);
+void fight_set_body(Fighter *f);
 void fight_control(Fighter *p, const Fighter *opp);
 void fight_physics(Fighter *p, float dt);
 void fight_hits(Fighter *a, Fighter *b);

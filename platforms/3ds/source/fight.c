@@ -43,6 +43,15 @@ static const int DASH_FUEL_CH[CH_COUNT] = {
 static const int SHOT_KIND[CH_COUNT] = {
 	1, 2, 3, 5, 4, 5, 0, 5
 };
+/* Altura visual alvo (px). Dexter/Zim mais baixos — Flash. */
+static const float BODY_H[CH_COUNT] = {
+	54.0f, 50.0f, 52.0f, 54.0f,
+	42.0f, 54.0f, 44.0f, 54.0f
+};
+static const float BODY_W[CH_COUNT] = {
+	22.0f, 20.0f, 22.0f, 22.0f,
+	18.0f, 22.0f, 18.0f, 22.0f
+};
 
 #define BASE_DAMAGE 15
 #define FREEZE_TIME 70
@@ -248,6 +257,18 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->clip_t = b->clip_t = 0.0f;
 	a->airj = b->airj = 0;
 	a->jlock = b->jlock = 0;
+}
+
+void fight_set_body(Fighter *f)
+{
+	int c = f->ch;
+
+	if (c < 0 || c >= CH_COUNT)
+		c = 0;
+	f->w = BODY_W[c];
+	f->h = BODY_H[c];
+	if (f->grounded)
+		f->y = GROUND - f->h;
 }
 
 static void start_dash(Fighter *p, int dir)
@@ -495,9 +516,9 @@ static void one_hit(Fighter *att, Fighter *vic)
 	if (att->move == MV_RANGED)
 		return;
 	hx = att->face > 0 ? att->x + att->w : att->x - REACH[att->move];
-	hy = att->y + 8.0f;
+	hy = att->y + att->h * 0.25f;
 	hw = REACH[att->move];
-	hh = 16.0f;
+	hh = att->h * 0.5f;
 	if (hx < vic->x + vic->w && hx + hw > vic->x &&
 	    hy < vic->y + vic->h && hy + hh > vic->y) {
 		att->hit_done = 1;
@@ -564,9 +585,9 @@ int fight_hitbox(const Fighter *f, float *x, float *y, float *w, float *h)
 	if (f->phase != FIGHT_ACTIVE || f->move == MV_RANGED)
 		return 0;
 	*w = REACH[f->move];
-	*h = 16.0f;
+	*h = f->h * 0.5f;
 	*x = f->face > 0 ? f->x + f->w : f->x - *w;
-	*y = f->y + 8.0f;
+	*y = f->y + f->h * 0.25f;
 	return 1;
 }
 

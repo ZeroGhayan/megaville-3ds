@@ -14,7 +14,8 @@ void meg_draw_fighter(const Fighter *f, float parallax);
 void meg_draw_idle(int ch, float x, float y, float scale);
 void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin);
 void meg_draw_stage(float parallax);
-/* face>=0 espelha via UVs (não scaleX=-1, que parte o atlas). */
-void meg_blit(C2D_Image img, float rx, float ry, float ox, float oy, int face);
+/* face>0 = olhar à direita. sc = escala (1 = pixeis nativos). */
+void meg_blit(C2D_Image img, float rx, float ry, float ox, float oy,
+              int face, float sc);
 
 #endif

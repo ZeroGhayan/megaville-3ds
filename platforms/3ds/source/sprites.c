@@ -62,7 +62,7 @@ static C2D_Image g_img_t[CH_COUNT][SPR_COUNT];
 static C2D_Image g_img_f[CH_COUNT][SPR_COUNT];
 static C2D_SpriteSheet g_pic;
 static C2D_SpriteSheet g_picf;
-static C2D_SpriteSheet g_city;
+static C2D_SpriteSheet g_sky;
 static C2D_SpriteSheet g_terrain;
 static C2D_SpriteSheet g_lamp;
 static C2D_Image g_picimg[CH_COUNT];
@@ -109,7 +109,7 @@ int meg_sprites_init(void)
 	}
 	g_pic = C2D_SpriteSheetLoad("romfs:/gfx/pic.t3x");
 	g_picf = C2D_SpriteSheetLoad("romfs:/gfx/pic_f.t3x");
-	g_city = C2D_SpriteSheetLoad("romfs:/gfx/city.t3x");
+	g_sky = C2D_SpriteSheetLoad("romfs:/gfx/sky.t3x");
 	g_terrain = C2D_SpriteSheetLoad("romfs:/gfx/terrain.t3x");
 	g_lamp = C2D_SpriteSheetLoad("romfs:/gfx/lamp.t3x");
 	g_picok = 0;
@@ -220,36 +220,32 @@ static int clamp_ch(int ch)
 	return ch;
 }
 
-void meg_blit(C2D_Image img, float rx, float ry, float ox, float oy, int face)
+void meg_blit(C2D_Image img, float rx, float ry, float ox, float oy,
+              int face, float sc)
 {
-	Tex3DS_SubTexture st;
-	C2D_Image use;
-	float w, x, y;
+	float x, y;
 
 	if (!img.subtex)
 		return;
-	use = img;
-	w = (float)img.subtex->width;
-	if (face >= 0) {
-		st = *img.subtex;
-		{
-			float t = st.left;
-			st.left = st.right;
-			st.right = t;
-		}
-		use.tex = img.tex;
-		use.subtex = &st;
-		ox = w - ox;
+	if (sc < 0.25f)
+		sc = 0.25f;
+	if (sc > 2.5f)
+		sc = 2.5f;
+	y = ry - oy * sc;
+	/* Fonte olha à esquerda. face>0 → scaleX negativo, pés em rx. */
+	if (face > 0) {
+		x = rx + ox * sc;
+		C2D_DrawImageAt(img, x, y, 0.5f, NULL, -sc, sc);
+	} else {
+		x = rx - ox * sc;
+		C2D_DrawImageAt(img, x, y, 0.5f, NULL, sc, sc);
 	}
-	x = rx - ox;
-	y = ry - oy;
-	C2D_DrawImageAt(use, x, y, 0.5f, NULL, 1.0f, 1.0f);
 }
 
 void meg_draw_fighter(const Fighter *f, float parallax)
 {
 	C2D_Image img;
-	float w, h, rx, ry, ox, oy;
+	float w, h, rx, ry, ox, oy, sc;
 	int ch, fr;
 
 	if (!g_any)
@@ -271,15 +267,13 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 		return;
 	w = img.subtex->width;
 	h = img.subtex->height;
+	/* Pés = fundo da pose. spr_off do sliced estava inconsistente. */
 	ox = w * 0.5f;
 	oy = h;
-	if (SPR_OX[ch][fr] || SPR_OY[ch][fr]) {
-		ox = (float)SPR_OX[ch][fr];
-		oy = (float)SPR_OY[ch][fr];
-	}
 	rx = f->x + f->w * 0.5f + parallax;
 	ry = f->y + f->h;
-	meg_blit(img, rx, ry, ox, oy, f->face);
+	sc = (oy > 1.0f) ? (f->h / oy) : 1.0f;
+	meg_blit(img, rx, ry, ox, oy, f->face, sc);
 }
 
 void meg_draw_idle(int ch, float x, float y, float scale)
@@ -328,12 +322,14 @@ void meg_draw_stage(float parallax)
 {
 	C2D_Image img;
 
-	if (g_city) {
-		img = C2D_SpriteSheetGetImage(g_city, 0);
-		if (img.subtex && img.subtex->width >= 200)
-			C2D_DrawImageAt(img, parallax * 0.25f, 0.0f, 0.2f,
+	if (g_sky) {
+		img = C2D_SpriteSheetGetImage(g_sky, 0);
+		if (img.subtex && img.subtex->width >= 200 &&
+		    img.subtex->height >= 80)
+			C2D_DrawImageAt(img, parallax * 0.15f, 0.0f, 0.15f,
 			                NULL, 1.0f, 1.0f);
 	}
+	/* city.t3x no dump é um rect preto — não desenhar. */
 	if (g_terrain) {
 		img = C2D_SpriteSheetGetImage(g_terrain, 0);
 		if (img.subtex && img.subtex->width >= 200)

@@ -48,6 +48,8 @@ static void apply_chars(void)
 	}
 	g_p1.twin = 0;
 	g_p2.twin = (g_p1.ch == g_p2.ch);
+	fight_set_body(&g_p1);
+	fight_set_body(&g_p2);
 }
 
 static void round_reset(void)
