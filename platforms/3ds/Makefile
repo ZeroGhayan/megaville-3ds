@@ -125,6 +125,8 @@ all: gfx_stage
 
 gfx_stage:
 	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS) $(CURDIR)/gfx
+	@rm -f $(BUILD)/dex_*.d $(BUILD)/dex_*.h
+	@rm -f $(GFXBUILD)/dex_*
 	@for c in blossom bubbles buttercup bell shira dexter zim rowdy; do \
 		if [ -f $(SLICE_ROOT)/$$c/idle.png ]; then \
 			mkdir -p $(CURDIR)/gfx/$$c; \

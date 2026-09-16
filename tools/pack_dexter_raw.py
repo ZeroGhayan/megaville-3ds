@@ -154,6 +154,16 @@ def main():
         print("AVISO: canvas varia — pes por frame")
 
     os.makedirs(GFX, exist_ok=True)
+    # t3s/pastas de um pack anterior (damage 76 frames, extra, …)
+    for fn in os.listdir(GFX):
+        if not fn.startswith("dex_"):
+            continue
+        p = os.path.join(GFX, fn)
+        if fn.endswith(".t3s") or os.path.isdir(p):
+            if os.path.isdir(p):
+                shutil.rmtree(p)
+            else:
+                os.remove(p)
     rows = []
     all_ox = []
     all_oy = []
