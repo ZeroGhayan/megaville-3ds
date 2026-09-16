@@ -42,6 +42,7 @@ typedef struct {
 	int clip_f;
 	float clip_t;
 	int airj;
+	int jlock;
 } Fighter;
 
 int fight_is_blossom(const Fighter *f);

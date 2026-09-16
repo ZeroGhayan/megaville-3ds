@@ -28,7 +28,7 @@ static const float WALK_SPD[CH_COUNT] = {
 };
 /* SPRITE_MAXDASHFUEL — Zim 0 = sem dash */
 static const int DASH_FUEL_CH[CH_COUNT] = {
-	10, 12, 10, 10, 8, 10, 0, 10
+	10, 12, 10, 10, 8, 10, 10, 10
 };
 /* X no idle: 0 melee  1 gelo  2 bolha  3 butch  4 beam  5 boomer */
 static const int SHOT_KIND[CH_COUNT] = {
@@ -232,6 +232,7 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->clip_f = b->clip_f = 0;
 	a->clip_t = b->clip_t = 0.0f;
 	a->airj = b->airj = 0;
+	a->jlock = b->jlock = 0;
 }
 
 static void start_dash(Fighter *p, int dir)
@@ -241,9 +242,9 @@ static void start_dash(Fighter *p, int dir)
 	if (p->dashed || p->dashes < DASH_COST)
 		return;
 	fuel = (p->ch >= 0 && p->ch < CH_COUNT) ? DASH_FUEL_CH[p->ch] : 10;
-	if (fuel <= 0)
+	if (p->ch == CH_ZIM)
 		return;
-	if (!p->grounded && p->ch == CH_DEXTER)
+	if (!p->grounded)
 		return;
 	if (!can_act(p) && p->phase != FIGHT_WALK)
 		return;
@@ -295,16 +296,20 @@ void fight_control(Fighter *p, const Fighter *opp)
 		}
 		if (!meg_held(MEG_ACT_LEFT) && !meg_held(MEG_ACT_RIGHT))
 			p->dashed = 0;
-		if (meg_down(MEG_ACT_JUMP)) {
-			if (can_act(p) && p->grounded) {
+		if (p->jlock > 0)
+			; /* atraso após o takeoff */
+		else if (meg_down(MEG_ACT_JUMP)) {
+			if (p->grounded && can_act(p)) {
 				p->vy = -JUMP_V;
 				p->grounded = 0;
 				p->airj = 0;
+				p->jlock = 12;
 				p->phase = FIGHT_JUMP;
-			} else if (!p->grounded && p->ch == CH_DEXTER && !p->airj &&
-			           (p->phase == FIGHT_JUMP || can_act(p))) {
+			} else if (!p->grounded && p->ch == CH_DEXTER &&
+			           !p->airj && p->phase == FIGHT_JUMP) {
 				p->vy = -JUMP_V;
 				p->airj = 1;
+				p->jlock = 12;
 				p->phase = FIGHT_JUMP;
 			}
 		}
@@ -316,7 +321,8 @@ void fight_control(Fighter *p, const Fighter *opp)
 			try_attack(p, 0);
 		if (meg_down(MEG_ACT_HEAVY))
 			try_attack(p, 1);
-		if (can_act(p) && p->grounded && p->phase != FIGHT_GUARD) {
+		if (p->phase != FIGHT_JUMP && can_act(p) && p->grounded &&
+		    p->phase != FIGHT_GUARD) {
 			if (p->vx > 20.0f || p->vx < -20.0f)
 				p->phase = FIGHT_WALK;
 			else
@@ -336,10 +342,14 @@ void fight_physics(Fighter *p, float dt)
 	if (p->phase == FIGHT_FROZEN)
 		p->vx = 0.0f;
 
+	if (p->jlock > 0)
+		p->jlock--;
+
 	p->x += p->vx * dt;
 	p->vy += GRAVITY * dt;
 	p->y += p->vy * dt;
-	if (p->y + p->h >= GROUND) {
+	/* Só aterra se estiver a descer — senão o pulo some no mesmo frame. */
+	if (p->y + p->h >= GROUND && p->vy >= 0.0f) {
 		p->y = GROUND - p->h;
 		p->vy = 0.0f;
 		if (!p->grounded && p->phase == FIGHT_JUMP)
@@ -348,6 +358,8 @@ void fight_physics(Fighter *p, float dt)
 		p->airj = 0;
 	} else {
 		p->grounded = 0;
+		if (p->y + p->h > GROUND && p->vy < 0.0f)
+			p->y = GROUND - p->h - 0.5f;
 	}
 	if (p->x < LEFT_WALL)
 		p->x = LEFT_WALL;
