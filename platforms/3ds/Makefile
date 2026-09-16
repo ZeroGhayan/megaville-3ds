@@ -129,6 +129,16 @@ gfx_stage:
 	@rm -f $(BUILD)/dex_*.d $(BUILD)/dex_*.h
 	@rm -f $(GFXBUILD)/dex_*
 	@rm -f $(CURDIR)/gfx/dex_*.t3s
+	@rm -f $(CURDIR)/gfx/*_*_*.t3s
+	@rm -f $(CURDIR)/gfx/ready_f.t3s $(CURDIR)/gfx/ready_t.t3s
+	@rm -f $(CURDIR)/gfx/city_f.t3s $(CURDIR)/gfx/city_t.t3s
+	@rm -f $(CURDIR)/gfx/terrain_f.t3s $(CURDIR)/gfx/terrain_t.t3s
+	@rm -f $(CURDIR)/gfx/lamp_f.t3s $(CURDIR)/gfx/lamp_t.t3s
+	@rm -f $(CURDIR)/gfx/hpbar_f.t3s $(CURDIR)/gfx/hpbar_t.t3s
+	@rm -f $(CURDIR)/gfx/hpframe_f.t3s $(CURDIR)/gfx/hpframe_t.t3s
+	@rm -f $(CURDIR)/gfx/dashbar_f.t3s $(CURDIR)/gfx/dashbar_t.t3s
+	@rm -f $(CURDIR)/gfx/sky_f.t3s $(CURDIR)/gfx/sky_t.t3s
+	@rm -rf $(CURDIR)/gfx/*_t $(CURDIR)/gfx/*_f
 	@rm -f $(GFXBUILD)/blossom_* $(GFXBUILD)/bubbles_* $(GFXBUILD)/buttercup_*
 	@rm -f $(GFXBUILD)/bell_* $(GFXBUILD)/shira_* $(GFXBUILD)/zim_* $(GFXBUILD)/rowdy_*
 	@for c in blossom bubbles buttercup bell shira dexter zim rowdy; do \

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Gera gfx/<char>_t.t3s com multiply Flash a partir dos PNG sliced."""
+"""Twin + flip SÓ das 8 poses (blossom.t3s …). Clip e palco não."""
 from __future__ import print_function
 import os
+import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from flash_twin import twin_mul
+from char_clips import CHARS
 
 try:
     from PIL import Image
@@ -14,23 +16,38 @@ except ImportError:
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 GFX = os.path.join(ROOT, "platforms", "3ds", "gfx")
-SKIP = ("pic.t3s",)
+KEEP = set(name for name, _folder, _fam in CHARS)
+
+
+def cleanup_stray():
+    if not os.path.isdir(GFX):
+        return
+    for fn in os.listdir(GFX):
+        path = os.path.join(GFX, fn)
+        if fn.endswith("_t.t3s") or fn.endswith("_f.t3s"):
+            base = fn[:-6]
+            if base not in KEEP:
+                os.remove(path)
+                continue
+        if os.path.isdir(path) and (fn.endswith("_t") or fn.endswith("_f")):
+            base = fn[:-2]
+            if base not in KEEP:
+                shutil.rmtree(path, ignore_errors=True)
 
 
 def main():
+    cleanup_stray()
     if not os.path.isdir(GFX):
         return 0
-    for fn in os.listdir(GFX):
-        if not fn.endswith(".t3s"):
-            continue
-        if fn in SKIP or fn.startswith("dex_") or fn.endswith("_t.t3s") or fn.endswith("_f.t3s"):
-            continue
+    for name in sorted(KEEP):
+        fn = name + ".t3s"
         path = os.path.join(GFX, fn)
+        if not os.path.isfile(path):
+            continue
         lines = open(path).read().splitlines()
         pngs = [l.strip() for l in lines if l.strip().endswith(".png")]
         if not pngs:
             continue
-        name = fn[:-4]
         outdir = os.path.join(GFX, name + "_t")
         flipdir = os.path.join(GFX, name + "_f")
         os.makedirs(outdir, exist_ok=True)

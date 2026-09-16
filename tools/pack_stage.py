@@ -32,6 +32,12 @@ STAGE = [
 def fit(im, box):
     im = knockout_border(im.convert("RGBA"))
     im, _, _ = trim_alpha(im, 0)
+    w, h = im.size
+    cap = 512
+    if w > cap or h > cap:
+        s = min(cap / float(max(1, w)), cap / float(max(1, h)))
+        im = im.resize((max(1, int(w * s)), max(1, int(h * s))), Image.NEAREST)
+        w, h = im.size
     if not box:
         return im
     tw, th = box
