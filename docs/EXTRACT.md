@@ -43,12 +43,27 @@ find assets/raw/dump -type f | sort > data/extract-inventory.txt
 Esse `.txt` (só caminhos e nomes) pode ir no repo. Eu uso os nomes
 para ligar `idle / walk / jump / guard / light / heavy / hit`.
 
-Anote no inventário, se vir:
+## 7. Mapear clips anónimos (obrigatório antes das animações finais)
 
-- nome do personagem no símbolo
-- quantos frames por animação
-- tamanho aproximado do sprite (px)
-- se o palco é bitmap ou vector
+**Não** subas `sprites/` ao GitHub, nem “temporariamente”. O histórico
+fica para sempre (e o dump é IP da Cartoon Network).
+
+O que entra no git é só o relatório:
+
+```bash
+python3 tools/map_clips.py
+git add data/clip-map.md
+```
+
+O script compara cada `DefineSprite_NNNN` anónimo com o pai nomeado
+(Blossom, Dexter, …) por hash do conteúdo (ignora canvas preto).
+
+- `EMBEDDED` — a tira já está no pai; ignora a pasta
+- `FROZEN` — o pai só fotografou o frame 1; usamos o filho
+- `PARTIAL` / `UNUSED` — ver o span e decidir
+
+Se o `.md` for grande demais para colar no chat, faz `git push` **só
+desse ficheiro**.
 
 ## 4. Áudio
 
