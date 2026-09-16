@@ -8,9 +8,9 @@
 
 #define GROUND 200.0f
 #define GRAVITY 900.0f
-#define JUMP_V 280.0f
 #define LEFT_WALL 8.0f
 #define RIGHT_WALL 392.0f
+#define FALL_MAX 400.0f
 
 enum { MV_LIGHT = 0, MV_HEAVY, MV_LLL, MV_LLH, MV_LH, MV_RANGED };
 
@@ -29,6 +29,11 @@ static const int HITSTUN[]  = { 12, 16, 24, 18, 20, 10 };
 static const float WALK_SPD[CH_COUNT] = {
 	144.0f, 162.0f, 144.0f, 144.0f,
 	126.0f, 144.0f, 144.0f, 252.0f
+};
+/* SPRITE_JUMPSPEED * 20 */
+static const float JUMP_SPD[CH_COUNT] = {
+	360.0f, 360.0f, 320.0f, 380.0f,
+	320.0f, 360.0f, 360.0f, 400.0f
 };
 /* SPRITE_MAXDASHFUEL — Zim 0 = sem dash */
 static const int DASH_FUEL_CH[CH_COUNT] = {
@@ -222,7 +227,13 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->move = b->move = 0;
 	a->hit_done = b->hit_done = 0;
 	a->ai = 0;
-	b->ai = meg_game()->dual_ctrl ? 0 : 1;
+	b->ai = 0;
+	if (meg_game()->mode == MODE_STORY)
+		b->ai = 1;
+	else if (meg_game()->mode == MODE_VERSUS)
+		b->ai = meg_game()->vs_cpu && !meg_game()->dual_ctrl;
+	else if (meg_game()->mode == MODE_SURVIVAL)
+		b->ai = 1;
 	a->dashes = b->dashes = DASH_MAX;
 	a->dash_acc = b->dash_acc = 0.0f;
 	a->dash_fuel = b->dash_fuel = 0;
@@ -304,14 +315,14 @@ void fight_control(Fighter *p, const Fighter *opp)
 			; /* atraso após o takeoff */
 		else if (meg_down(MEG_ACT_JUMP)) {
 			if (p->grounded && can_act(p)) {
-				p->vy = -JUMP_V;
+				p->vy = -JUMP_SPD[p->ch];
 				p->grounded = 0;
 				p->airj = 0;
 				p->jlock = 12;
 				p->phase = FIGHT_JUMP;
 			} else if (!p->grounded && p->ch == CH_DEXTER &&
 			           !p->airj && p->phase == FIGHT_JUMP) {
-				p->vy = -JUMP_V;
+				p->vy = -JUMP_SPD[p->ch];
 				p->airj = 1;
 				p->jlock = 12;
 				p->phase = FIGHT_JUMP;
@@ -351,6 +362,8 @@ void fight_physics(Fighter *p, float dt)
 
 	p->x += p->vx * dt;
 	p->vy += GRAVITY * dt;
+	if (p->vy > FALL_MAX)
+		p->vy = FALL_MAX;
 	p->y += p->vy * dt;
 	/* Só aterra se estiver a descer — senão o pulo some no mesmo frame. */
 	if (p->y + p->h >= GROUND && p->vy >= 0.0f) {
@@ -564,11 +577,5 @@ void fight_hits(Fighter *a, Fighter *b)
 	shot_hit(a, b);
 	shot_hit(b, a);
 }
-
-void fight_hits(Fighter *a, Fighter *b)
-{
-	one_hit(a, b);
-	one_hit(b, a);
-	shot_hit(a, b);
-	shot_hit(b, a);
 }
+

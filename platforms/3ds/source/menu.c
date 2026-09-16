@@ -92,7 +92,7 @@ static void tick_main(void)
 		go_diff_or_select(MODE_STORY);
 		break;
 	case 1:
-		go_diff_or_select(MODE_VERSUS);
+		meg_set_screen(SCR_VSMODE);
 		break;
 	case 2:
 		go_diff_or_select(MODE_SURVIVAL);
@@ -123,10 +123,34 @@ static void tick_diff(void)
 	if (meg_raw_down(EXO_BTN_DOWN) && g_row < 9)
 		g_row++;
 	if (meg_raw_down(EXO_BTN_B))
-		meg_set_screen(SCR_MAIN);
+		meg_set_screen(g->mode == MODE_VERSUS ? SCR_VSMODE : SCR_MAIN);
 	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
 		g->difficulty = g_row + 1;
 		g->menudiff = g->difficulty;
+		g->vs_sel = 0;
+		meg_set_screen(SCR_SELECT);
+	}
+}
+
+static void tick_vsmode(void)
+{
+	MegGame *g = meg_game();
+
+	if (meg_raw_down(EXO_BTN_UP) || meg_raw_down(EXO_BTN_DOWN))
+		g_row ^= 1;
+	if (meg_raw_down(EXO_BTN_B))
+		meg_set_screen(SCR_MAIN);
+	if (!meg_raw_down(EXO_BTN_A) && !meg_raw_down(EXO_BTN_START))
+		return;
+	g->mode = MODE_VERSUS;
+	g->vs_sel = 0;
+	if (g_row == 0) {
+		g->vs_cpu = 1;
+		g->difficulty = g->menudiff;
+		meg_set_screen(SCR_DIFF);
+	} else {
+		g->vs_cpu = 0;
+		g->difficulty = g->menudiff;
 		meg_set_screen(SCR_SELECT);
 	}
 }
@@ -201,6 +225,9 @@ void meg_menu_tick(void)
 	case SCR_DIFF:
 		tick_diff();
 		break;
+	case SCR_VSMODE:
+		tick_vsmode();
+		break;
 	case SCR_OPTIONS:
 		tick_options();
 		break;
@@ -237,6 +264,10 @@ void meg_menu_draw_top(void)
 	case SCR_DIFF:
 		exo_top_text(200, 80, 0.55f, gold, meg_mode_name(meg_game()->mode));
 		exo_top_text(200, 120, 0.7f, pink, meg_diff_name(g_row + 1));
+		break;
+	case SCR_VSMODE:
+		exo_top_text(200, 80, 0.7f, gold, "VERSUS");
+		exo_top_text(200, 130, 0.4f, mute, "CPU OR DUMMY");
 		break;
 	case SCR_HOWTO:
 		exo_top_text(200, 100, 0.6f, gold, "HOW TO PLAY");
@@ -314,6 +345,17 @@ void meg_menu_draw_bot(void)
 		         meg_diff_name(g_row + 1));
 		exo_text(16, 214, 0.32f, C2D_Color32(110, 110, 130, 255),
 		         "PAD  A fight  B back");
+		return;
+	}
+
+	if (g_scr == SCR_VSMODE) {
+		exo_text(16, 8, 0.45f, C2D_Color32(255, 255, 255, 255), "VERSUS");
+		line(48, g_row == 0, "VS CPU");
+		line(80, g_row == 1, "VS DUMMY  (no AI)");
+		exo_text(16, 140, 0.36f, C2D_Color32(180, 180, 200, 255),
+		         g_row == 0 ? "CPU fights back" : "P2 stands still — tests");
+		exo_text(16, 214, 0.32f, C2D_Color32(110, 110, 130, 255),
+		         "A next  B menu");
 		return;
 	}
 

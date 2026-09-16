@@ -39,6 +39,10 @@ void meg_game_init(void)
 	g.unlock_shira = 0;
 	g.unlock_extra = 0;
 	g.dual_ctrl = 0;
+	g.vs_cpu = 1;
+	g.vs_p1 = 0;
+	g.vs_p2 = 1;
+	g.vs_sel = 0;
 	g.story_level = 0;
 	g.story_p1 = 0;
 	g.numcontinues = 0;

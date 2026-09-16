@@ -39,6 +39,9 @@ static void apply_chars(void)
 	if (g->mode == MODE_STORY) {
 		g_p1.ch = g->story_p1;
 		g_p2.ch = meg_story_cpu(g->story_p1, g->story_level);
+	} else if (g->mode == MODE_VERSUS) {
+		g_p1.ch = g->vs_p1;
+		g_p2.ch = g->vs_p2;
 	} else {
 		g_p1.ch = g_pick;
 		g_p2.ch = (g_pick + 1) % CH_COUNT;
@@ -250,25 +253,51 @@ static void draw_select(void)
 
 	exo_render_bottom(C2D_Color32(16, 16, 28, 255));
 	exo_text_begin();
-	exo_text(8, 6, 0.48f, C2D_Color32(255, 255, 255, 255), "SELECT");
+	exo_text(8, 6, 0.42f, C2D_Color32(255, 255, 255, 255),
+	         meg_game()->mode == MODE_VERSUS
+	             ? (meg_game()->vs_sel == 0 ? "SELECT P1" : "SELECT P2")
+	             : "SELECT");
+	if (meg_game()->mode == MODE_VERSUS) {
+		char s[48];
+
+		snprintf(s, sizeof s, "P1 %s  P2 %s  %s",
+		         CH_NAME[meg_game()->vs_p1],
+		         meg_game()->vs_sel ? CH_NAME[meg_game()->vs_p2]
+		                            : "?",
+		         meg_game()->vs_cpu ? "CPU" : "DUMMY");
+		exo_text(8, 18, 0.32f, C2D_Color32(200, 200, 120, 255), s);
+	}
 	for (i = 0; i < CH_COUNT; ++i) {
 		col = i % SEL_COLS;
 		row = i / SEL_COLS;
 		x = 12.0f + (float)col * 78.0f;
-		y = 28.0f + (float)row * 88.0f;
-		tint = (i == g_pick) ? C2D_Color32(255, 220, 90, 255)
-		                     : C2D_Color32(140, 150, 160, 255);
-		exo_bot_rect(x, y, 72, 80,
-		             i == g_pick ? C2D_Color32(50, 48, 28, 255)
-		                         : C2D_Color32(28, 30, 40, 255));
+		y = 36.0f + (float)row * 84.0f;
+		{
+			int on = (i == g_pick);
+			int p1 = (meg_game()->mode == MODE_VERSUS &&
+			          i == meg_game()->vs_p1);
+			int p2 = (meg_game()->mode == MODE_VERSUS &&
+			          meg_game()->vs_sel && i == meg_game()->vs_p2);
+
+			tint = on ? C2D_Color32(255, 220, 90, 255)
+			          : C2D_Color32(140, 150, 160, 255);
+			exo_bot_rect(x, y, 72, 76,
+			             on ? C2D_Color32(50, 48, 28, 255)
+			                : p1 ? C2D_Color32(28, 40, 70, 255)
+				             : p2 ? C2D_Color32(70, 28, 40, 255)
+				                  : C2D_Color32(28, 30, 40, 255));
+		}
 		exo_text(x + 4, y + 4, 0.32f, tint, CH_NAME[i]);
 		if (meg_sprites_ok_ch(i))
 			meg_draw_idle(i, x + 36.0f, y + 72.0f, 1.0f);
 	}
-	exo_text(8, 214, 0.38f, C2D_Color32(120, 120, 140, 255),
+	exo_text(8, 214, 0.32f, C2D_Color32(120, 120, 140, 255),
 	         meg_game()->mode == MODE_STORY
-	             ? "A start   B menu   (Zim n/a)"
-	             : "PAD move   A fight   B menu");
+	             ? "A start  B menu  (Zim n/a)"
+	             : meg_game()->mode == MODE_VERSUS
+	                   ? (meg_game()->vs_sel ? "A confirm P2  B P1"
+	                                        : "A confirm P1  B back")
+	                   : "PAD  A fight  B menu");
 }
 
 static void tick_select(void)
@@ -283,12 +312,32 @@ static void tick_select(void)
 		g_pick += SEL_COLS;
 	if (meg_game()->mode == MODE_STORY && g_pick == CH_ZIM)
 		g_pick = CH_SHIRA;
-	if (meg_raw_down(EXO_BTN_B))
-		meg_set_screen(SCR_MAIN);
+	if (meg_raw_down(EXO_BTN_B)) {
+		if (meg_game()->mode == MODE_VERSUS && meg_game()->vs_sel) {
+			meg_game()->vs_sel = 0;
+			g_pick = meg_game()->vs_p1;
+			return;
+		}
+		meg_set_screen(meg_game()->mode == MODE_VERSUS ? SCR_VSMODE
+		                                               : SCR_MAIN);
+		return;
+	}
 	if (meg_raw_down(EXO_BTN_A) || meg_raw_down(EXO_BTN_START)) {
-		if (meg_game()->mode == MODE_STORY)
+		if (meg_game()->mode == MODE_STORY) {
 			meg_story_begin(g_pick);
-		goto_vs();
+			goto_vs();
+		} else if (meg_game()->mode == MODE_VERSUS) {
+			if (meg_game()->vs_sel == 0) {
+				meg_game()->vs_p1 = g_pick;
+				meg_game()->vs_sel = 1;
+				meg_game()->vs_p2 = g_pick;
+			} else {
+				meg_game()->vs_p2 = g_pick;
+				goto_vs();
+			}
+		} else {
+			goto_vs();
+		}
 	}
 }
 

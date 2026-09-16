@@ -22,6 +22,10 @@ typedef struct {
 	int unlock_shira;
 	int unlock_extra;
 	int dual_ctrl;
+	int vs_cpu;  /* versus: 1 CPU, 0 dummy */
+	int vs_p1;
+	int vs_p2;
+	int vs_sel;  /* 0 pick P1, 1 pick P2 */
 	int story_level;
 	int story_p1;
 	int numcontinues;
