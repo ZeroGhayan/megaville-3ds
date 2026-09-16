@@ -61,17 +61,30 @@ static void goto_vs(void)
 	meg_set_screen(SCR_VS);
 }
 
+static const char *vs_name(int ch)
+{
+	static const char *n[] = {
+		"BLOSSOM", "BUBBLES", "BUTTERCUP", "BELL",
+		"DEXTER", "ROWDYRUFF", "ZIM", "SHIRA BELL"
+	};
+
+	if (ch < 0 || ch >= CH_COUNT)
+		return "";
+	return n[ch];
+}
+
 static void draw_vs_top(void)
 {
-	exo_top_text(110.0f, 8.0f, 0.55f, C2D_Color32(255, 255, 255, 255),
-	             CH_NAME[g_p1.ch]);
-	exo_top_text(290.0f, 8.0f, 0.55f, C2D_Color32(255, 255, 255, 255),
-	             CH_NAME[g_p2.ch]);
-	C2D_DrawRectSolid(20.0f, 42.0f, 0.2f, 360.0f, 168.0f,
-	                  C2D_Color32(8, 18, 80, 255));
-	meg_draw_pic(g_p1.ch, 90.0f, 205.0f, 1.0f, 1, 0);
-	meg_draw_pic(g_p2.ch, 310.0f, 205.0f, 1.0f, -1, g_p2.twin);
-	exo_top_text(200.0f, 100.0f, 1.1f, C2D_Color32(255, 255, 255, 255), "VS");
+	u32 white = C2D_Color32(255, 255, 255, 255);
+
+	exo_top_text(95.0f, 4.0f, 0.72f, white, vs_name(g_p1.ch));
+	exo_top_text(305.0f, 4.0f, 0.72f, white, vs_name(g_p2.ch));
+	C2D_DrawRectSolid(0.0f, 34.0f, 0.2f, 400.0f, 186.0f,
+	                  C2D_Color32(8, 12, 56, 255));
+	exo_top_text(200.0f, 92.0f, 1.65f, white, "VS");
+	/* P1 arte crua; P2 só flip — o original não pinta twin no VS */
+	meg_draw_pic(g_p1.ch, 88.0f, 218.0f, 1.0f, -1, 0);
+	meg_draw_pic(g_p2.ch, 312.0f, 218.0f, 1.0f, 1, 0);
 }
 
 static void draw_continue_top(void)

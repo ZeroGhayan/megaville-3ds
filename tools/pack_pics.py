@@ -55,17 +55,21 @@ def find(name):
 
 
 def fit_pic(im):
+    """Close-up do original: topo do personagem a encher o banner."""
     im = knockout_border(im.convert("RGBA"))
     im, _, _ = trim_alpha(im, 2)
     w, h = im.size
-    max_h, max_w = 150, 120
-    s = 1.0
-    if h > max_h:
-        s = max_h / float(h)
-    if w * s > max_w:
-        s = max_w / float(w)
-    if s < 1.0:
-        im = im.resize((max(1, int(w * s)), max(1, int(h * s))), Image.BICUBIC)
+    bust = int(h * 0.62)
+    if bust < 90:
+        bust = h
+    if bust < h:
+        im = im.crop((0, 0, w, bust))
+        w, h = im.size
+    max_h, max_w = 176, 175
+    s = min(max_h / float(max(1, h)), max_w / float(max(1, w)))
+    nw, nh = max(1, int(w * s)), max(1, int(h * s))
+    if (nw, nh) != (w, h):
+        im = im.resize((nw, nh), Image.BICUBIC)
     return im
 
 
