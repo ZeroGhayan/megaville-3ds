@@ -288,6 +288,12 @@ void fight_control(Fighter *p, const Fighter *opp)
 			try_attack(p, 0);
 		if (meg_down(MEG_ACT_HEAVY))
 			try_attack(p, 1);
+		if (can_act(p) && p->grounded && p->phase != FIGHT_GUARD) {
+			if (p->vx > 20.0f || p->vx < -20.0f)
+				p->phase = FIGHT_WALK;
+			else
+				p->phase = FIGHT_IDLE;
+		}
 	}
 
 	if (p->phase == FIGHT_GUARD)

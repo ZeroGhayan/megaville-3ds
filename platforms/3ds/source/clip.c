@@ -1,6 +1,7 @@
 #include "clip.h"
 #include "clip_table.h"
 #include "roster.h"
+#include "sprites.h"
 
 #include <citro2d.h>
 #include <stdio.h>
@@ -78,6 +79,8 @@ static int phase_to_clip(const Fighter *f)
 	default:
 		if (!f->grounded)
 			return DEX_JUMP;
+		if (f->vx > 20.0f || f->vx < -20.0f)
+			return DEX_FORWARD;
 		return DEX_IDLE;
 	}
 }
@@ -176,6 +179,11 @@ void meg_clip_tick(Fighter *f, float dt)
 	n = DEX_CLIP[id].count;
 	if (n <= 0)
 		return;
+	if (id == DEX_IDLE) {
+		f->clip_f = 0;
+		f->clip_t = 0.0f;
+		return;
+	}
 	f->clip_t += dt;
 	if (f->clip_t < 0.04f)
 		return;
@@ -190,7 +198,7 @@ void meg_clip_draw(const Fighter *f, float parallax)
 {
 	C2D_SpriteSheet sh;
 	C2D_Image img;
-	float rx, ry, x, y;
+	float rx, ry;
 	int id, fr, n, chunk, local, idx, ox, oy;
 
 	id = f->clip_id;
@@ -219,14 +227,7 @@ void meg_clip_draw(const Fighter *f, float parallax)
 	oy = DEX_OY[idx];
 	rx = f->x + f->w * 0.5f + parallax;
 	ry = f->y + f->h;
-	y = ry - (float)oy;
-	if (f->face < 0) {
-		x = rx - (float)ox;
-		C2D_DrawImageAt(img, x, y, 0.5f, NULL, 1.0f, 1.0f);
-	} else {
-		x = rx + (float)ox;
-		C2D_DrawImageAt(img, x, y, 0.5f, NULL, -1.0f, 1.0f);
-	}
+	meg_blit(img, rx, ry, (float)ox, (float)oy, f->face);
 }
 
 #else

@@ -13,5 +13,7 @@ void meg_tint_twin(C2D_ImageTint *t);
 void meg_draw_fighter(const Fighter *f, float parallax);
 void meg_draw_idle(int ch, float x, float y, float scale);
 void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin);
+/* face>=0 espelha via UVs (não scaleX=-1, que parte o atlas). */
+void meg_blit(C2D_Image img, float rx, float ry, float ox, float oy, int face);
 
 #endif

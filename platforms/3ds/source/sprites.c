@@ -4,6 +4,7 @@
 #include "spr_off.h"
 
 #include <citro2d.h>
+#include <tex3ds.h>
 #include <string.h>
 
 enum {
@@ -208,11 +209,37 @@ static int clamp_ch(int ch)
 	return ch;
 }
 
+void meg_blit(C2D_Image img, float rx, float ry, float ox, float oy, int face)
+{
+	Tex3DS_SubTexture st;
+	C2D_Image use;
+	float w, x, y;
+
+	if (!img.subtex)
+		return;
+	use = img;
+	w = (float)img.subtex->width;
+	if (face >= 0) {
+		st = *img.subtex;
+		{
+			float t = st.left;
+			st.left = st.right;
+			st.right = t;
+		}
+		use.tex = img.tex;
+		use.subtex = &st;
+		ox = w - ox;
+	}
+	x = rx - ox;
+	y = ry - oy;
+	C2D_DrawImageAt(use, x, y, 0.5f, NULL, 1.0f, 1.0f);
+}
+
 void meg_draw_fighter(const Fighter *f, float parallax)
 {
 	C2D_Image img;
-	float w, h, x, y, rx, ry, ox, oy;
-	int ch, fr, flip;
+	float w, h, rx, ry, ox, oy;
+	int ch, fr;
 
 	if (!g_any)
 		return;
@@ -224,12 +251,9 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 	if (!g_ok[ch])
 		return;
 	fr = pick(f);
-	flip = f->face >= 0;
 	memset(&img, 0, sizeof img);
 	if (f->twin && g_ok_t[ch] && g_img_t[ch][fr].subtex)
 		img = g_img_t[ch][fr];
-	else if (flip && g_ok_f[ch] && g_img_f[ch][fr].subtex)
-		img = g_img_f[ch][fr];
 	else
 		img = g_img[ch][fr];
 	if (!img.subtex)
@@ -242,13 +266,9 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 		ox = (float)SPR_OX[ch][fr];
 		oy = (float)SPR_OY[ch][fr];
 	}
-	if (flip && g_ok_f[ch])
-		ox = w - ox;
 	rx = f->x + f->w * 0.5f + parallax;
 	ry = f->y + f->h;
-	x = rx - ox;
-	y = ry - oy;
-	C2D_DrawImageAt(img, x, y, 0.5f, NULL, 1.0f, 1.0f);
+	meg_blit(img, rx, ry, ox, oy, f->face);
 }
 
 void meg_draw_idle(int ch, float x, float y, float scale)
