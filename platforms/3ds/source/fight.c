@@ -577,5 +577,4 @@ void fight_hits(Fighter *a, Fighter *b)
 	shot_hit(a, b);
 	shot_hit(b, a);
 }
-}
 
