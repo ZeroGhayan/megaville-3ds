@@ -22,31 +22,12 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DUMP = os.path.join(ROOT, "assets", "raw", "dump", "sprites")
 OUT = os.path.join(ROOT, "assets", "private", "sliced")
 
-CHARS = {
-    "blossom": "DefineSprite_471_Blossom",
-    "bubbles": "DefineSprite_563_Bubbles",
-    "buttercup": "DefineSprite_690_Buttercup",
-    "bell": "DefineSprite_370_Bell",
-    "shira": "DefineSprite_1469_Shira Bell",
-    "dexter": "DefineSprite_1236_Dexter",
-    "zim": "DefineSprite_1334_zim",
-    "rowdy": "DefineSprite_1399_Rowdyruff",
-}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from char_clips import CHARS as CHAR_LIST, POSES, POSE_NAMES
 
-# frame number in the clip → action name
-# conferido no contact sheet do clip 471 (arte olha para a ESQUERDA)
-SLICE = {
-    1: "idle",
-    50: "land",
-    62: "jump",
-    71: "walk",
-    86: "dash",
-    95: "heavy",
-    113: "light",
-    126: "light2",
-    277: "hit",
-    301: "ko",
-}
+# nome → pasta dump
+CHARS = {name: folder for name, folder, _fam in CHAR_LIST}
+FAM = {name: fam for name, _folder, fam in CHAR_LIST}
 
 BLACK = 18
 PAD = 2
@@ -112,7 +93,8 @@ def main():
     miss = 0
     for name in names:
         folder = os.path.join(DUMP, CHARS[name])
-        for frame, action in SLICE.items():
+        fam = FAM.get(name, "ppg")
+        for action, frame in POSES[fam]:
             src = os.path.join(folder, "%d.png" % frame)
             if not os.path.isfile(src):
                 print("falta:", src)

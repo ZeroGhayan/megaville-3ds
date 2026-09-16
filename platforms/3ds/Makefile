@@ -127,6 +127,8 @@ gfx_stage:
 	@mkdir -p $(BUILD) $(GFXBUILD) $(CURDIR)/$(ROMFS) $(CURDIR)/gfx
 	@rm -f $(BUILD)/dex_*.d $(BUILD)/dex_*.h
 	@rm -f $(GFXBUILD)/dex_*
+	@rm -f $(GFXBUILD)/blossom_* $(GFXBUILD)/bubbles_* $(GFXBUILD)/buttercup_*
+	@rm -f $(GFXBUILD)/bell_* $(GFXBUILD)/shira_* $(GFXBUILD)/zim_* $(GFXBUILD)/rowdy_*
 	@for c in blossom bubbles buttercup bell shira dexter zim rowdy; do \
 		if [ -f $(SLICE_ROOT)/$$c/idle.png ]; then \
 			mkdir -p $(CURDIR)/gfx/$$c; \
@@ -135,6 +137,8 @@ gfx_stage:
 		fi; \
 	done
 	@python3 $(TOPDIR)/../../tools/pack_pics.py || echo "pack_pics: sem pics"
+	@python3 $(TOPDIR)/../../tools/pack_chars.py || echo "pack_chars: skip"
+	@python3 $(TOPDIR)/../../tools/pack_stage.py || echo "pack_stage: skip"
 	@python3 $(TOPDIR)/../../tools/pack_sliced_off.py || echo "pack_sliced_off: skip"
 	@python3 $(TOPDIR)/../../tools/pack_sliced_twin.py
 

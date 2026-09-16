@@ -179,8 +179,7 @@ static void draw_eye(ExoEye eye)
 
 	exo_render_eye(eye, C2D_Color32(28, 36, 56, 255));
 	px = exo_parallax(4.0f, eye);
-	C2D_DrawRectSolid(0.0f + px, GROUND_Y, 0.4f, 400.0f, 40.0f,
-	                  C2D_Color32(46, 72, 58, 255));
+	meg_draw_stage(px);
 	if (scr == SCR_PLAY) {
 		draw_fighter(&g_p1, eye);
 		draw_fighter(&g_p2, eye);

@@ -62,6 +62,9 @@ static C2D_Image g_img_t[CH_COUNT][SPR_COUNT];
 static C2D_Image g_img_f[CH_COUNT][SPR_COUNT];
 static C2D_SpriteSheet g_pic;
 static C2D_SpriteSheet g_picf;
+static C2D_SpriteSheet g_city;
+static C2D_SpriteSheet g_terrain;
+static C2D_SpriteSheet g_lamp;
 static C2D_Image g_picimg[CH_COUNT];
 static C2D_Image g_pictwin[CH_COUNT];
 static C2D_Image g_picflip[CH_COUNT];
@@ -110,6 +113,9 @@ int meg_sprites_init(void)
 	}
 	g_pic = C2D_SpriteSheetLoad("romfs:/gfx/pic.t3x");
 	g_picf = C2D_SpriteSheetLoad("romfs:/gfx/pic_f.t3x");
+	g_city = C2D_SpriteSheetLoad("romfs:/gfx/city.t3x");
+	g_terrain = C2D_SpriteSheetLoad("romfs:/gfx/terrain.t3x");
+	g_lamp = C2D_SpriteSheetLoad("romfs:/gfx/lamp.t3x");
 	g_picok = 0;
 	g_picfok = 0;
 	if (g_pic) {
@@ -150,8 +156,17 @@ void meg_sprites_fini(void)
 		C2D_SpriteSheetFree(g_pic);
 	if (g_picf)
 		C2D_SpriteSheetFree(g_picf);
+	if (g_city)
+		C2D_SpriteSheetFree(g_city);
+	if (g_terrain)
+		C2D_SpriteSheetFree(g_terrain);
+	if (g_lamp)
+		C2D_SpriteSheetFree(g_lamp);
 	g_pic = NULL;
 	g_picf = NULL;
+	g_city = NULL;
+	g_terrain = NULL;
+	g_lamp = NULL;
 	g_picok = 0;
 	g_picfok = 0;
 }
@@ -311,5 +326,36 @@ void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin)
 	if (sx < 0.0f)
 		x += w;
 	C2D_DrawImageAt(img, x, y - h, 0.5f, NULL, sx, scale);
+}
+
+void meg_draw_stage(float parallax)
+{
+	C2D_Image img;
+
+	if (g_city) {
+		img = C2D_SpriteSheetGetImage(g_city, 0);
+		if (img.subtex)
+			C2D_DrawImageAt(img, parallax * 0.25f, 0.0f, 0.2f,
+			                NULL, 1.0f, 1.0f);
+	}
+	if (g_terrain) {
+		img = C2D_SpriteSheetGetImage(g_terrain, 0);
+		if (img.subtex)
+			C2D_DrawImageAt(img, parallax, 200.0f - img.subtex->height + 8.0f,
+			                0.3f, NULL, 1.0f, 1.0f);
+		else
+			C2D_DrawRectSolid(parallax, 200.0f, 0.3f, 400.0f, 40.0f,
+			                  C2D_Color32(46, 72, 58, 255));
+	} else {
+		C2D_DrawRectSolid(parallax, 200.0f, 0.3f, 400.0f, 40.0f,
+		                  C2D_Color32(46, 72, 58, 255));
+	}
+	if (g_lamp) {
+		img = C2D_SpriteSheetGetImage(g_lamp, 0);
+		if (img.subtex)
+			C2D_DrawImageAt(img, 320.0f + parallax,
+			                200.0f - img.subtex->height,
+			                0.35f, NULL, 1.0f, 1.0f);
+	}
 }
 

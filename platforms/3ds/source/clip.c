@@ -9,85 +9,75 @@
 #include <stdint.h>
 #include <string.h>
 
-#if MEG_DEX_CLIP
+#if MEG_CLIP
 #include "clip_off.h"
 
 enum {
-	DEX_IDLE = 0,
-	DEX_LAND,
-	DEX_JUMP,
-	DEX_FORWARD,
-	DEX_DASH,
-	DEX_SHIELD,
-	DEX_COMBO1,
-	DEX_COMBO2,
-	DEX_COMBO3,
-	DEX_RANGED,
-	DEX_AIR,
-	DEX_DOWNATK,
-	DEX_FALL,
-	DEX_FALLEN,
-	DEX_RECOVER,
-	DEX_WIN,
-	DEX_TELEPORT,
-	DEX_DAMAGE,
-	DEX_CLIP_N
+	CLIP_IDLE = 0,
+	CLIP_LAND,
+	CLIP_JUMP,
+	CLIP_FORWARD,
+	CLIP_DASH,
+	CLIP_SHIELD,
+	CLIP_COMBO1,
+	CLIP_COMBO2,
+	CLIP_COMBO3,
+	CLIP_RANGED,
+	CLIP_AIR,
+	CLIP_DOWNATK,
+	CLIP_FALL,
+	CLIP_FALLEN,
+	CLIP_RECOVER,
+	CLIP_WIN,
+	CLIP_TELEPORT,
+	CLIP_DAMAGE
 };
-
-typedef struct {
-	const char *prefix;
-	int count;
-	int loop;
-	int chunk;
-} DexClip;
-
-static const DexClip DEX_CLIP[] = { DEX_CLIP_DATA };
 
 #define MAX_SHEETS 192
 
 static C2D_SpriteSheet g_sh[MAX_SHEETS];
 static int g_key[MAX_SHEETS];
 static int g_nsh;
-static int g_ok;
+static int g_loaded[CH_COUNT];
 
 static int phase_to_clip(const Fighter *f)
 {
 	if (f->hp <= 0)
-		return DEX_FALLEN;
+		return CLIP_FALLEN;
 	switch (f->phase) {
 	case FIGHT_HIT:
 	case FIGHT_FROZEN:
-		return DEX_DAMAGE;
+		return CLIP_DAMAGE;
 	case FIGHT_DASH:
-		return DEX_DASH;
+		return CLIP_DASH;
 	case FIGHT_JUMP:
-		return DEX_JUMP;
+		return CLIP_JUMP;
 	case FIGHT_GUARD:
-		return DEX_SHIELD;
+		return CLIP_SHIELD;
 	case FIGHT_STARTUP:
 	case FIGHT_ACTIVE:
 	case FIGHT_RECOVERY:
 		if (f->move == 5)
-			return DEX_RANGED;
+			return CLIP_RANGED;
 		if (f->move == 1 || f->move == 3)
-			return DEX_COMBO3;
+			return CLIP_COMBO3;
 		if (f->move == 2 || f->move == 4)
-			return DEX_COMBO2;
-		return DEX_COMBO1;
+			return CLIP_COMBO2;
+		return CLIP_COMBO1;
 	case FIGHT_WALK:
-		return DEX_FORWARD;
+		return CLIP_FORWARD;
 	default:
 		if (!f->grounded)
-			return DEX_JUMP;
+			return CLIP_JUMP;
 		if (f->vx > 20.0f || f->vx < -20.0f)
-			return DEX_FORWARD;
-		return DEX_IDLE;
+			return CLIP_FORWARD;
+		return CLIP_IDLE;
 	}
 }
 
-static int sheet_key(int id, int sheet, int twin)
+static int sheet_key(int ch, int id, int sheet)
 {
-	return (twin ? 0x8000 : 0) | (id * 256 + sheet);
+	return (ch << 12) | (id * 32 + sheet);
 }
 
 static C2D_SpriteSheet find_sheet(int key)
@@ -100,22 +90,19 @@ static C2D_SpriteSheet find_sheet(int key)
 	return NULL;
 }
 
-static void load_one(int id, int sheet, int twin)
+static void load_one(int ch, int id, int sheet)
 {
-	char path[80];
+	char path[96];
 	int key;
 
 	if (g_nsh >= MAX_SHEETS)
 		return;
-	key = sheet_key(id, sheet, twin);
+	if (CLIP[ch][id].count <= 0)
+		return;
+	key = sheet_key(ch, id, sheet);
 	if (find_sheet(key))
 		return;
-	if (twin)
-		snprintf(path, sizeof path, "%s_t_%d.t3x",
-		         DEX_CLIP[id].prefix, sheet);
-	else
-		snprintf(path, sizeof path, "%s_%d.t3x",
-		         DEX_CLIP[id].prefix, sheet);
+	snprintf(path, sizeof path, "%s_%d.t3x", CLIP[ch][id].prefix, sheet);
 	g_sh[g_nsh] = C2D_SpriteSheetLoad(path);
 	if (!g_sh[g_nsh])
 		return;
@@ -123,27 +110,28 @@ static void load_one(int id, int sheet, int twin)
 	g_nsh++;
 }
 
-int meg_clip_init(void)
+static void ensure_char(int ch)
 {
-	int id, s, n, chunk, last;
+	int id, s, n, chunk;
 
-	g_ok = 0;
-	g_nsh = 0;
-	last = DEX_DAMAGE; /* extra/win nao no preload */
-	if (last >= (int)(sizeof DEX_CLIP / sizeof DEX_CLIP[0]))
-		last = (int)(sizeof DEX_CLIP / sizeof DEX_CLIP[0]) - 1;
-	for (id = 0; id <= last; ++id) {
-		n = DEX_CLIP[id].count;
-		chunk = DEX_CLIP[id].chunk;
+	if (ch < 0 || ch >= CH_COUNT || g_loaded[ch])
+		return;
+	for (id = 0; id < CLIP_ANIM_N; ++id) {
+		n = CLIP[ch][id].count;
+		chunk = CLIP[ch][id].chunk;
 		if (n <= 0 || chunk < 1)
 			continue;
-		for (s = 0; s < (n + chunk - 1) / chunk; ++s) {
-			load_one(id, s, 0);
-			load_one(id, s, 1);
-		}
+		for (s = 0; s < (n + chunk - 1) / chunk; ++s)
+			load_one(ch, id, s);
 	}
-	g_ok = g_nsh > 0;
-	return g_ok;
+	g_loaded[ch] = 1;
+}
+
+int meg_clip_init(void)
+{
+	memset(g_loaded, 0, sizeof g_loaded);
+	g_nsh = 0;
+	return 1;
 }
 
 void meg_clip_fini(void)
@@ -156,30 +144,37 @@ void meg_clip_fini(void)
 		g_sh[i] = NULL;
 	}
 	g_nsh = 0;
-	g_ok = 0;
+	memset(g_loaded, 0, sizeof g_loaded);
 }
 
 int meg_clip_ok(int ch)
 {
-	return g_ok && ch == CH_DEXTER;
+	if (ch < 0 || ch >= CH_COUNT)
+		return 0;
+	if (CLIP[ch][CLIP_IDLE].count <= 0)
+		return 0;
+	ensure_char(ch);
+	return find_sheet(sheet_key(ch, CLIP_IDLE, 0)) != NULL;
 }
 
 void meg_clip_tick(Fighter *f, float dt)
 {
-	int id, n, loop;
+	int id, n, loop, ch;
 
-	if (!meg_clip_ok(f->ch))
+	ch = f->ch;
+	if (!meg_clip_ok(ch))
 		return;
+	ensure_char(ch);
 	id = phase_to_clip(f);
 	if (id != f->clip_id) {
 		f->clip_id = id;
 		f->clip_f = 0;
 		f->clip_t = 0.0f;
 	}
-	n = DEX_CLIP[id].count;
+	n = CLIP[ch][id].count;
 	if (n <= 0)
 		return;
-	if (id == DEX_IDLE) {
+	if (id == CLIP_IDLE) {
 		f->clip_f = 0;
 		f->clip_t = 0.0f;
 		return;
@@ -189,7 +184,7 @@ void meg_clip_tick(Fighter *f, float dt)
 		return;
 	f->clip_t = 0.0f;
 	f->clip_f++;
-	loop = DEX_CLIP[id].loop;
+	loop = CLIP[ch][id].loop;
 	if (f->clip_f >= n)
 		f->clip_f = (loop < 0) ? (n - 1) : loop;
 }
@@ -199,32 +194,36 @@ void meg_clip_draw(const Fighter *f, float parallax)
 	C2D_SpriteSheet sh;
 	C2D_Image img;
 	float rx, ry;
-	int id, fr, n, chunk, local, idx, ox, oy;
+	int ch, id, fr, n, chunk, local, idx, ox, oy;
 
+	ch = f->ch;
+	if (!meg_clip_ok(ch))
+		return;
+	ensure_char(ch);
 	id = f->clip_id;
-	if (id < 0 || id >= DEX_CLIP_N)
-		id = DEX_IDLE;
-	n = DEX_CLIP[id].count;
+	if (id < 0 || id >= CLIP_ANIM_N)
+		id = CLIP_IDLE;
+	n = CLIP[ch][id].count;
+	if (n <= 0)
+		return;
 	fr = f->clip_f;
 	if (fr < 0)
 		fr = 0;
-	if (n > 0 && fr >= n)
+	if (fr >= n)
 		fr = n - 1;
-	chunk = DEX_CLIP[id].chunk;
+	chunk = CLIP[ch][id].chunk;
 	if (chunk < 1)
 		chunk = 1;
 	local = fr % chunk;
-	sh = find_sheet(sheet_key(id, fr / chunk, f->twin));
-	if (!sh)
-		sh = find_sheet(sheet_key(id, fr / chunk, 0));
+	sh = find_sheet(sheet_key(ch, id, fr / chunk));
 	if (!sh)
 		return;
 	img = C2D_SpriteSheetGetImage(sh, local);
 	if (!img.subtex)
 		return;
-	idx = DEX_OFF_BASE[id] + fr;
-	ox = DEX_OX[idx];
-	oy = DEX_OY[idx];
+	idx = CLIP_BASE[ch][id] + fr;
+	ox = CLIP_OX[ch][idx];
+	oy = CLIP_OY[ch][idx];
 	rx = f->x + f->w * 0.5f + parallax;
 	ry = f->y + f->h;
 	meg_blit(img, rx, ry, (float)ox, (float)oy, f->face);

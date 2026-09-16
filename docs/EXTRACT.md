@@ -83,8 +83,13 @@ SFX originais também. Placeholder fica no Git.
 
 ## 5. Quando os PNG “entram” no jogo
 
-Depois do inventário: você escolhe frames, eu monto o atlas
-(`tex3ds`) e o código aponta para `idle_0`, `light_1`, etc.
+O `make` corre `tools/pack_chars.py` (8 lutadores) e `tools/pack_stage.py` (chão, cidade, poste).
+
+```bash
+cd platforms/3ds && make
+```
+
+Poses → `gfx/<char>.t3s`. Clips → `gfx/<char>_<anim>_N.t3x` (só os 2 da luta são carregados). Ver `data/asset-map.md`.
 
 ## 6. Recortar o slice (local)
 
