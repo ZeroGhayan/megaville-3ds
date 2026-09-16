@@ -152,15 +152,15 @@ void meg_sprites_fini(void)
 		C2D_SpriteSheetFree(g_pic);
 	if (g_picf)
 		C2D_SpriteSheetFree(g_picf);
-	if (g_city)
-		C2D_SpriteSheetFree(g_city);
+	if (g_sky)
+		C2D_SpriteSheetFree(g_sky);
 	if (g_terrain)
 		C2D_SpriteSheetFree(g_terrain);
 	if (g_lamp)
 		C2D_SpriteSheetFree(g_lamp);
 	g_pic = NULL;
 	g_picf = NULL;
-	g_city = NULL;
+	g_sky = NULL;
 	g_terrain = NULL;
 	g_lamp = NULL;
 	g_picok = 0;
