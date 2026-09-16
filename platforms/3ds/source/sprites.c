@@ -42,10 +42,23 @@ static const char *SHEET_TWIN[CH_COUNT] = {
 	"romfs:/gfx/shira_t.t3x"
 };
 
+static const char *SHEET_FLIP[CH_COUNT] = {
+	"romfs:/gfx/blossom_f.t3x",
+	"romfs:/gfx/bubbles_f.t3x",
+	"romfs:/gfx/buttercup_f.t3x",
+	"romfs:/gfx/bell_f.t3x",
+	"romfs:/gfx/dexter_f.t3x",
+	"romfs:/gfx/rowdy_f.t3x",
+	"romfs:/gfx/zim_f.t3x",
+	"romfs:/gfx/shira_f.t3x"
+};
+
 static C2D_SpriteSheet g_sheet[CH_COUNT];
 static C2D_SpriteSheet g_sheet_t[CH_COUNT];
+static C2D_SpriteSheet g_sheet_f[CH_COUNT];
 static C2D_Image g_img[CH_COUNT][SPR_COUNT];
 static C2D_Image g_img_t[CH_COUNT][SPR_COUNT];
+static C2D_Image g_img_f[CH_COUNT][SPR_COUNT];
 static C2D_SpriteSheet g_pic;
 static C2D_SpriteSheet g_picf;
 static C2D_Image g_picimg[CH_COUNT];
@@ -53,6 +66,7 @@ static C2D_Image g_pictwin[CH_COUNT];
 static C2D_Image g_picflip[CH_COUNT];
 static int g_ok[CH_COUNT];
 static int g_ok_t[CH_COUNT];
+static int g_ok_f[CH_COUNT];
 static int g_any;
 static int g_picok;
 static int g_picfok;
@@ -69,8 +83,10 @@ int meg_sprites_init(void)
 	for (c = 0; c < CH_COUNT; ++c) {
 		g_sheet[c] = NULL;
 		g_sheet_t[c] = NULL;
+		g_sheet_f[c] = NULL;
 		g_ok[c] = 0;
 		g_ok_t[c] = 0;
+		g_ok_f[c] = 0;
 		g_sheet[c] = C2D_SpriteSheetLoad(SHEET_PATH[c]);
 		if (!g_sheet[c])
 			continue;
@@ -79,11 +95,16 @@ int meg_sprites_init(void)
 		g_ok[c] = 1;
 		g_any = 1;
 		g_sheet_t[c] = C2D_SpriteSheetLoad(SHEET_TWIN[c]);
-		g_ok_t[c] = 0;
 		if (g_sheet_t[c]) {
 			for (i = 0; i < SPR_COUNT; ++i)
 				g_img_t[c][i] = C2D_SpriteSheetGetImage(g_sheet_t[c], i);
 			g_ok_t[c] = 1;
+		}
+		g_sheet_f[c] = C2D_SpriteSheetLoad(SHEET_FLIP[c]);
+		if (g_sheet_f[c]) {
+			for (i = 0; i < SPR_COUNT; ++i)
+				g_img_f[c][i] = C2D_SpriteSheetGetImage(g_sheet_f[c], i);
+			g_ok_f[c] = 1;
 		}
 	}
 	g_pic = C2D_SpriteSheetLoad("romfs:/gfx/pic.t3x");
@@ -114,10 +135,14 @@ void meg_sprites_fini(void)
 			C2D_SpriteSheetFree(g_sheet[c]);
 		if (g_sheet_t[c])
 			C2D_SpriteSheetFree(g_sheet_t[c]);
+		if (g_sheet_f[c])
+			C2D_SpriteSheetFree(g_sheet_f[c]);
 		g_sheet[c] = NULL;
 		g_sheet_t[c] = NULL;
+		g_sheet_f[c] = NULL;
 		g_ok[c] = 0;
 		g_ok_t[c] = 0;
+		g_ok_f[c] = 0;
 	}
 	g_any = 0;
 	if (g_pic)
@@ -185,10 +210,9 @@ static int clamp_ch(int ch)
 
 void meg_draw_fighter(const Fighter *f, float parallax)
 {
-	C2D_Sprite spr;
-	C2D_SpriteSheet sh;
-	float rx, ry, ox, oy, w, h;
-	int ch, fr;
+	C2D_Image img;
+	float w, h, x, y, rx, ry, ox, oy;
+	int ch, fr, flip;
 
 	if (!g_any)
 		return;
@@ -200,29 +224,31 @@ void meg_draw_fighter(const Fighter *f, float parallax)
 	if (!g_ok[ch])
 		return;
 	fr = pick(f);
-	if (f->twin && g_ok_t[ch] && g_sheet_t[ch])
-		sh = g_sheet_t[ch];
+	flip = f->face >= 0;
+	memset(&img, 0, sizeof img);
+	if (f->twin && g_ok_t[ch] && g_img_t[ch][fr].subtex)
+		img = g_img_t[ch][fr];
+	else if (flip && g_ok_f[ch] && g_img_f[ch][fr].subtex)
+		img = g_img_f[ch][fr];
 	else
-		sh = g_sheet[ch];
-	if (!sh)
+		img = g_img[ch][fr];
+	if (!img.subtex)
 		return;
-	C2D_SpriteFromSheet(&spr, sh, (size_t)fr);
-	w = spr.image.subtex ? spr.image.subtex->width : 0;
-	h = spr.image.subtex ? spr.image.subtex->height : 0;
-	if (w < 1.0f || h < 1.0f)
-		return;
+	w = img.subtex->width;
+	h = img.subtex->height;
 	ox = w * 0.5f;
 	oy = h;
 	if (SPR_OX[ch][fr] || SPR_OY[ch][fr]) {
 		ox = (float)SPR_OX[ch][fr];
 		oy = (float)SPR_OY[ch][fr];
 	}
+	if (flip && g_ok_f[ch])
+		ox = w - ox;
 	rx = f->x + f->w * 0.5f + parallax;
 	ry = f->y + f->h;
-	C2D_SpriteSetCenter(&spr, ox, oy);
-	C2D_SpriteSetPos(&spr, rx, ry);
-	C2D_SpriteSetScale(&spr, f->face >= 0 ? -1.0f : 1.0f, 1.0f);
-	C2D_DrawSprite(&spr);
+	x = rx - ox;
+	y = ry - oy;
+	C2D_DrawImageAt(img, x, y, 0.5f, NULL, 1.0f, 1.0f);
 }
 
 void meg_draw_idle(int ch, float x, float y, float scale)

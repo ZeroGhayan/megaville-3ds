@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Aperta os PNG sliced, grava origem (pés) em spr_off.h.
+"""Mede origem (pés) nos PNG sliced. NÃO reescreve as imagens.
 
-Corre no gfx_stage depois do cp a partir de assets/private/sliced.
+  python3 tools/pack_sliced_off.py
 """
 from __future__ import print_function
 
@@ -14,7 +14,7 @@ except ImportError:
     sys.exit(0)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from flash_twin import knockout_border, trim_alpha, core_feet
+from flash_twin import core_feet
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 GFX = os.path.join(ROOT, "platforms", "3ds", "gfx")
@@ -31,23 +31,20 @@ def main():
     any_ok = False
     for ci, name in enumerate(CHARS):
         folder = os.path.join(GFX, name)
-        t3s = os.path.join(GFX, name + ".t3s")
-        if not os.path.isdir(folder) or not os.path.isfile(t3s):
+        if not os.path.isdir(folder):
             continue
         for fi, fr in enumerate(FRAMES):
             p = os.path.join(folder, fr + ".png")
             if not os.path.isfile(p):
                 continue
-            im = knockout_border(Image.open(p).convert("RGBA"))
-            im, _, _ = trim_alpha(im, 1)
+            im = Image.open(p).convert("RGBA")
             fx, fy = core_feet(im)
-            im.save(p)
             ox[ci][fi] = int(fx)
             oy[ci][fi] = int(fy)
             any_ok = True
             print("off", name, fr, im.size, "origin", fx, fy)
     with open(HDR, "w") as f:
-        f.write("/* gerado por tools/pack_sliced_off.py */\n")
+        f.write("/* gerado por tools/pack_sliced_off.py — não knockout */\n")
         f.write("#ifndef MEG_SPR_OFF_H\n#define MEG_SPR_OFF_H\n")
         f.write("#define MEG_SPR_OFF 1\n")
         f.write("static const int16_t SPR_OX[%d][%d] = {\n" % (

@@ -204,7 +204,7 @@ void fight_reset(Fighter *a, Fighter *b)
 	a->move = b->move = 0;
 	a->hit_done = b->hit_done = 0;
 	a->ai = 0;
-	b->ai = 1;
+	b->ai = 0; /* IA desligada para testar sprites / virar */
 	a->dashes = b->dashes = DASH_MAX;
 	a->dash_acc = b->dash_acc = 0.0f;
 	a->dash_fuel = b->dash_fuel = 0;

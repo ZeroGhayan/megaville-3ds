@@ -189,8 +189,8 @@ void meg_clip_tick(Fighter *f, float dt)
 void meg_clip_draw(const Fighter *f, float parallax)
 {
 	C2D_SpriteSheet sh;
-	C2D_Sprite spr;
-	float rx, ry;
+	C2D_Image img;
+	float rx, ry, x, y;
 	int id, fr, n, chunk, local, idx, ox, oy;
 
 	id = f->clip_id;
@@ -211,16 +211,22 @@ void meg_clip_draw(const Fighter *f, float parallax)
 		sh = find_sheet(sheet_key(id, fr / chunk, 0));
 	if (!sh)
 		return;
+	img = C2D_SpriteSheetGetImage(sh, local);
+	if (!img.subtex)
+		return;
 	idx = DEX_OFF_BASE[id] + fr;
 	ox = DEX_OX[idx];
 	oy = DEX_OY[idx];
 	rx = f->x + f->w * 0.5f + parallax;
 	ry = f->y + f->h;
-	C2D_SpriteFromSheet(&spr, sh, (size_t)local);
-	C2D_SpriteSetCenter(&spr, (float)ox, (float)oy);
-	C2D_SpriteSetPos(&spr, rx, ry);
-	C2D_SpriteSetScale(&spr, f->face >= 0 ? -1.0f : 1.0f, 1.0f);
-	C2D_DrawSprite(&spr);
+	y = ry - (float)oy;
+	if (f->face < 0) {
+		x = rx - (float)ox;
+		C2D_DrawImageAt(img, x, y, 0.5f, NULL, 1.0f, 1.0f);
+	} else {
+		x = rx + (float)ox;
+		C2D_DrawImageAt(img, x, y, 0.5f, NULL, -1.0f, 1.0f);
+	}
 }
 
 #else
