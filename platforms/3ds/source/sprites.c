@@ -46,12 +46,15 @@ static C2D_SpriteSheet g_sheet_t[CH_COUNT];
 static C2D_Image g_img[CH_COUNT][SPR_COUNT];
 static C2D_Image g_img_t[CH_COUNT][SPR_COUNT];
 static C2D_SpriteSheet g_pic;
+static C2D_SpriteSheet g_picf;
 static C2D_Image g_picimg[CH_COUNT];
 static C2D_Image g_pictwin[CH_COUNT];
+static C2D_Image g_picflip[CH_COUNT];
 static int g_ok[CH_COUNT];
 static int g_ok_t[CH_COUNT];
 static int g_any;
 static int g_picok;
+static int g_picfok;
 
 /* ajuste fino depois do crop manual */
 static float g_offx[CH_COUNT];
@@ -83,13 +86,20 @@ int meg_sprites_init(void)
 		}
 	}
 	g_pic = C2D_SpriteSheetLoad("romfs:/gfx/pic.t3x");
+	g_picf = C2D_SpriteSheetLoad("romfs:/gfx/pic_f.t3x");
 	g_picok = 0;
+	g_picfok = 0;
 	if (g_pic) {
 		for (c = 0; c < CH_COUNT; ++c) {
 			g_picimg[c] = C2D_SpriteSheetGetImage(g_pic, c);
 			g_pictwin[c] = C2D_SpriteSheetGetImage(g_pic, c + CH_COUNT);
 		}
 		g_picok = 1;
+	}
+	if (g_picf) {
+		for (c = 0; c < CH_COUNT; ++c)
+			g_picflip[c] = C2D_SpriteSheetGetImage(g_picf, c);
+		g_picfok = 1;
 	}
 	return g_any;
 }
@@ -111,8 +121,12 @@ void meg_sprites_fini(void)
 	g_any = 0;
 	if (g_pic)
 		C2D_SpriteSheetFree(g_pic);
+	if (g_picf)
+		C2D_SpriteSheetFree(g_picf);
 	g_pic = NULL;
+	g_picf = NULL;
 	g_picok = 0;
+	g_picfok = 0;
 }
 
 int meg_sprites_ok(void)
@@ -208,13 +222,17 @@ void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin)
 {
 	C2D_Image img;
 	float w, h, sx;
+	int flip;
 
 	if (ch < 0 || ch >= CH_COUNT)
 		return;
 	memset(&img, 0, sizeof img);
+	flip = face >= 0;
 	if (g_picok) {
 		if (twin && g_pictwin[ch].subtex)
 			img = g_pictwin[ch];
+		else if (flip && g_picfok && g_picflip[ch].subtex)
+			img = g_picflip[ch];
 		else
 			img = g_picimg[ch];
 	}
@@ -227,7 +245,10 @@ void meg_draw_pic(int ch, float x, float y, float scale, int face, int twin)
 		return;
 	w = img.subtex->width * scale;
 	h = img.subtex->height * scale;
-	sx = face >= 0 ? -scale : scale;
+	/* flip baked in pic_f — scaleX nunca negativo (atlas UV no 3DS) */
+	sx = scale;
+	if (flip && !g_picfok)
+		sx = -scale;
 	x -= w * 0.5f;
 	if (sx < 0.0f)
 		x += w;

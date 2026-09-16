@@ -55,18 +55,17 @@ def find(name):
 
 
 def fit_pic(im):
-    """Close-up do original: topo do personagem a encher o banner."""
+    """Mesma altura de banner para todos; recorte de corpo inteiro só se for muito alto."""
     im = knockout_border(im.convert("RGBA"))
     im, _, _ = trim_alpha(im, 2)
     w, h = im.size
-    bust = int(h * 0.62)
-    if bust < 90:
-        bust = h
-    if bust < h:
-        im = im.crop((0, 0, w, bust))
+    if h > w * 1.4:
+        im = im.crop((0, 0, w, int(h * 0.70)))
         w, h = im.size
-    max_h, max_w = 176, 175
-    s = min(max_h / float(max(1, h)), max_w / float(max(1, w)))
+    target_h, max_w = 180, 200
+    s = target_h / float(max(1, h))
+    if w * s > max_w:
+        s = max_w / float(max(1, w))
     nw, nh = max(1, int(w * s)), max(1, int(h * s))
     if (nw, nh) != (w, h):
         im = im.resize((nw, nh), Image.BICUBIC)
@@ -79,30 +78,38 @@ def main():
     if os.path.isdir(SRC):
         print("ficheiros:", ", ".join(sorted(os.listdir(SRC))) or "(vazio)")
     os.makedirs(os.path.join(GFX, "pic"), exist_ok=True)
+    os.makedirs(os.path.join(GFX, "pic_f"), exist_ok=True)
     lines = ["--atlas -f rgba8888 -z auto"]
+    flip_lines = ["--atlas -f rgba8888 -z auto"]
     n = 0
     imgs = []
     for i, name in enumerate(NAMES):
         p = find(name)
         out = os.path.join(GFX, "pic", "%d.png" % i)
+        outf = os.path.join(GFX, "pic_f", "%d.png" % i)
         if p:
             im = fit_pic(Image.open(p))
             im.save(out)
+            im.transpose(Image.FLIP_LEFT_RIGHT).save(outf)
             print("pic", i, name, "←", os.path.basename(p), im.size)
             n += 1
         else:
             im = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
             im.save(out)
+            im.save(outf)
             print("pic", i, name, "FALTA  (queria", name + ".png)")
         imgs.append(im)
         lines.append("pic/%d.png" % i)
+        flip_lines.append("pic_f/%d.png" % i)
     for i, im in enumerate(imgs):
         tw = twin_mul(im)
         tw.save(os.path.join(GFX, "pic", "%d.png" % (i + 8)))
         lines.append("pic/%d.png" % (i + 8))
     with open(os.path.join(GFX, "pic.t3s"), "w") as f:
         f.write("\n".join(lines) + "\n")
-    print("ok", n, "/ 8 + twin →", os.path.join(GFX, "pic.t3s"))
+    with open(os.path.join(GFX, "pic_f.t3s"), "w") as f:
+        f.write("\n".join(flip_lines) + "\n")
+    print("ok", n, "/ 8 + twin + flip →", os.path.join(GFX, "pic.t3s"))
     return 0
 
 

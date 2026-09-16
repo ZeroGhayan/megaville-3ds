@@ -77,14 +77,14 @@ static void draw_vs_top(void)
 {
 	u32 white = C2D_Color32(255, 255, 255, 255);
 
-	exo_top_text(95.0f, 4.0f, 0.72f, white, vs_name(g_p1.ch));
-	exo_top_text(305.0f, 4.0f, 0.72f, white, vs_name(g_p2.ch));
 	C2D_DrawRectSolid(0.0f, 34.0f, 0.2f, 400.0f, 186.0f,
 	                  C2D_Color32(8, 12, 56, 255));
-	exo_top_text(200.0f, 92.0f, 1.65f, white, "VS");
-	/* P1 arte crua; P2 só flip — o original não pinta twin no VS */
-	meg_draw_pic(g_p1.ch, 88.0f, 218.0f, 1.0f, -1, 0);
-	meg_draw_pic(g_p2.ch, 312.0f, 218.0f, 1.0f, 1, 0);
+	/* P1 esquerda (arte nativa); P2 direita (folha já espelhada) */
+	meg_draw_pic(g_p1.ch, 100.0f, 220.0f, 1.0f, -1, 0);
+	meg_draw_pic(g_p2.ch, 300.0f, 220.0f, 1.0f, 1, 0);
+	exo_top_text(95.0f, 4.0f, 0.72f, white, vs_name(g_p1.ch));
+	exo_top_text(305.0f, 4.0f, 0.72f, white, vs_name(g_p2.ch));
+	exo_top_text(200.0f, 88.0f, 1.70f, white, "VS");
 }
 
 static void draw_continue_top(void)
